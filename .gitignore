@@ -21,3 +21,9 @@ logs/
 
 # Spring Boot (solo perfiles adicionales, el principal se versiona)
 application-*.properties
+
+# Archivos .md locales (no versionar en remoto)
+CAMBIOS_REALIZADOS.md
+EJECUTAR.md
+EJEMPLOS_USO.md
+USO_JDBC_LOCAL.md
