@@ -158,14 +158,13 @@ public class FundUsuarioDAO {
     }
 
     // UPDATE - Actualizar solo campos no nulos (consola)
-    public static boolean actualizarCampos(int usuConsecutivo, Integer dv,
+    public static boolean actualizarCampos(int usuConsecutivo,
                                            String primerApellido, String segundoApellido,
                                            String primerNombre, String segundoNombre,
                                            LocalDate fechaNacimiento, String sexo, Integer tipoSangre) {
         StringBuilder sql = new StringBuilder("UPDATE fundusuario SET ");
         java.util.ArrayList<Object> valores = new java.util.ArrayList<>();
         
-        if (dv != null) { sql.append("DV = ?, "); valores.add(dv); }
         if (primerApellido != null) { sql.append("PRIMERAPELLIDO = ?, "); valores.add(primerApellido); }
         if (segundoApellido != null) { sql.append("SEGUNDOAPELLIDO = ?, "); valores.add(segundoApellido); }
         if (primerNombre != null) { sql.append("PRIMERNOMBRE = ?, "); valores.add(primerNombre); }

@@ -194,18 +194,6 @@ public class Principal {
             
             System.out.println("\nDeje en blanco los campos que NO desea modificar.\n");
             
-            System.out.print("DV (Dígito de Verificación) [Enter para no modificar]: ");
-            String dvStr = scanner.nextLine().trim();
-            Integer dv = null;
-            if (!dvStr.isEmpty()) {
-                try {
-                    dv = Integer.parseInt(dvStr);
-                } catch (NumberFormatException e) {
-                    System.out.println("✗ DV no válido");
-                    return;
-                }
-            }
-            
             System.out.print("Primer Apellido [Enter para no modificar]: ");
             String primerApellido = scanner.nextLine().trim();
             if (primerApellido.isEmpty()) primerApellido = null;
@@ -250,7 +238,7 @@ public class Principal {
                 }
             }
             
-            if (FundUsuarioDAO.actualizarCampos(usuConsecutivo, dv,
+            if (FundUsuarioDAO.actualizarCampos(usuConsecutivo,
                                                 primerApellido, segundoApellido, primerNombre, 
                                                 segundoNombre, fechaNacimiento, sexo, tipoSangre)) {
                 System.out.println("\n✓ Usuario actualizado exitosamente");
