@@ -2,317 +2,507 @@
 
 ## Tabla de Contenidos
 1. [Arquitectura General](#arquitectura-general)
-2. [Dos Interfaces Disponibles](#dos-interfaces-disponibles)
-3. [Interfaz Web (Spring Boot)](#interfaz-web-spring-boot)
-4. [Interfaz Consola (JDBC Puro)](#interfaz-consola-jdbc-puro)
-5. [Clase ConexionJDBC](#clase-conexionjdbc)
-6. [Clase FundUsuarioDAO](#clase-fundusuariodao)
-7. [Clase Principal](#clase-principal)
-8. [Sentencias SQL](#sentencias-sql)
-9. [Flujo de Ejecución](#flujo-de-ejecución)
+2. [Clase PqrsApplication](#clase-pqrsapplication)
+3. [Clase UsuarioRestController](#clase-usuariorestcontroller)
+4. [DTOs (Data Transfer Objects)](#dtos-data-transfer-objects)
+5. [Clase FundUsuarioDAO](#clase-fundusuariodao)
+6. [Clase ConexionJDBC](#clase-conexionjdbc)
+7. [Clase Principal (Consola)](#clase-principal-consola)
+8. [Frontend Web](#frontend-web)
+9. [Sentencias SQL](#sentencias-sql)
 10. [Variables y Librerías](#variables-y-librerías)
+11. [Flujo de Ejecución](#flujo-de-ejecución)
 
 ---
 
 ## Arquitectura General
 
-### OPCIÓN 1: Interfaz Web (Spring Boot) - RECOMENDADA
+El proyecto tiene **DOS interfaces** que comparten la misma capa de datos:
+
+### 🌐 Interfaz Web (Spring Boot) — RECOMENDADA
 ```
-ESTRUCTURA DEL PROYECTO:
-┌──────────────────────────────────────────────────────────────┐
-│         NAVEGADOR WEB (http://localhost:8080)              │
-│    (HTML/CSS/JavaScript - SIN dependencias externas)       │
-└───────────────────────┬──────────────────────────────────────┘
-                        │ FETCH API (AJAX)
-                        ↓
-┌──────────────────────────────────────────────────────────────┐
-│           UsuarioRestController.java                        │
-│          (6 ENDPOINTS REST - Spring Web)                   │
-│  GET, POST, PUT, DELETE con Validación                     │
-└───────────────────────┬──────────────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        ↓               ↓               ↓
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ CreateUserDTO│ │ Response DTO │ │ ApiResponseDTO│
-│  (Request)   │ │  (Response)  │ │  (Envelope)  │
-└──────────────┘ └──────────────┘ └──────────────┘
-        │               │               │
-        └───────────────┼───────────────┘
-                        ↓
-        ┌──────────────────────────────┐
-        │  FundUsuarioDAO.java         │
-        │  (CRUD + Métodos JSON)       │
-        │  - crear()                   │
-        │  - obtenerTodosJSON()        │
-        │  - obtenerPorIdJSON()        │
-        │  - obtenerPorIdentificacionJSON()
-        │  - actualizar()              │
-        │  - eliminar()                │
-        └───────────────┬──────────────┘
-                        ↓
-        ┌──────────────────────────────┐
-        │    ConexionJDBC.java         │
-        │  (JDBC - Gestión Conexiones) │
-        └───────────────┬──────────────┘
-                        ↓
-        ┌──────────────────────────────┐
-        │    MARIADB (bdpqrsej)        │
-        │  Tabla: FUNDUSUARIO          │
-        └──────────────────────────────┘
+Navegador (http://localhost:8080)
+    ↓ Fetch API (AJAX)
+UsuarioRestController.java (6 endpoints REST)
+    ↓
+FundUsuarioDAO.java (métodos JSON)
+    ↓
+ConexionJDBC.java
+    ↓
+MariaDB (bdpqrsej / fundusuario)
 ```
 
-**Flujo Web:**
-Navegador → Fetch API → UsuarioRestController → DTOs → FundUsuarioDAO → ConexionJDBC → MariaDB
-
-### OPCIÓN 2: Interfaz Consola (JDBC Puro) - Original
+### 🖥️ Interfaz Consola (JDBC Puro)
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                      Principal.java                         │
-│              (PROGRAMA PRINCIPAL - MENÚ)                   │
-└───────────────────────┬──────────────────────────────────────┘
-                        ↓
-┌──────────────────────────────────────────────────────────────┐
-│                    FundUsuarioDAO.java                      │
-│         (MÉTODOS CRUD - OPERACIONES DE BD)                │
-└───────────────────────┬──────────────────────────────────────┘
-                        ↓
-┌──────────────────────────────────────────────────────────────┐
-│                    ConexionJDBC.java                        │
-│     (GESTIÓN DE CONEXIONES A MARIADB)                     │
-└───────────────────────┬──────────────────────────────────────┘
-                        ↓
-        ┌──────────────────────────────┐
-        │    MARIADB (bdpqrsej)        │
-        │  Tabla: FUNDUSUARIO          │
-        └──────────────────────────────┘
+Principal.java (menú interactivo)
+    ↓
+FundUsuarioDAO.java (métodos consola + CRUD)
+    ↓
+ConexionJDBC.java
+    ↓
+MariaDB (bdpqrsej / fundusuario)
 ```
-
-**Flujo Consola:**
-Principal → FundUsuarioDAO → ConexionJDBC → MariaDB
 
 ---
 
-## Dos Interfaces Disponibles
+## Clase PqrsApplication
 
-### 🌐 Interfaz Web (NUEVA - RECOMENDADA)
-- **Tecnología:** Spring Boot + HTML5 + CSS3 + JavaScript ES6
-- **Acceso:** `http://localhost:8080`
-- **Ejecución:** `ejecutar-web.bat`
-- **Características:** Moderno, responsivo, intuitivo, sin dependencias externas en frontend
-- **Endpoints:** 6 REST endpoints (GET, POST, PUT, DELETE)
+**Archivo:** `src/main/java/com/pqrs/PqrsApplication.java`
 
-### 🖥️ Interfaz Consola (ORIGINAL)
-- **Tecnología:** JDBC puro + menú interactivo
-- **Acceso:** Terminal/Consola
-- **Ejecución:** `ejecutar.bat`
-- **Características:** Ligero, rápido, bajo consumo, sin frameworks
+### Propósito
+Punto de entrada de la aplicación Spring Boot. Inicia el servidor web embebido (Tomcat).
+
+### Código completo
+```java
+package com.pqrs;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class PqrsApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(PqrsApplication.class, args);
+    }
+}
+```
+
+### Anotaciones
+| Anotación | Descripción |
+|-----------|-------------|
+| `@SpringBootApplication` | Habilita auto-configuración, escaneo de componentes y configuración Spring Boot |
+
+### Qué hace
+- `SpringApplication.run()` arranca Tomcat en puerto 8080
+- Escanea automáticamente todos los beans (`@RestController`, etc.)
+- Sirve archivos estáticos desde `src/main/resources/static/`
+- Expone la página `index.html` como welcome page
 
 ---
 
-## Interfaz Web (Spring Boot)
+## Clase UsuarioRestController
 
-### UsuarioRestController.java
-**Ubicación:** `src/main/java/com/pqrs/controller/UsuarioRestController.java`
+**Archivo:** `src/main/java/com/pqrs/controller/UsuarioRestController.java`
 
-#### Propósito
-Exponer endpoints REST para operaciones CRUD con validación y respuestas JSON.
+### Propósito
+Exponer endpoints REST para operaciones CRUD sobre la tabla `fundusuario`, con validaciones y respuestas JSON estructuradas.
 
-#### Endpoints
+### Librerías Importadas
+```java
+import com.pqrs.dao.FundUsuarioDAO;
+import com.pqrs.dto.ApiResponseDTO;
+import com.pqrs.dto.CreateUserDTO;
+import com.pqrs.dto.UsuarioResponseDTO;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+```
 
+### Anotaciones de Clase
 ```java
 @RestController
 @RequestMapping("/api/usuarios")
 @CrossOrigin(origins = "*")
-public class UsuarioRestController {
-    
-    // GET /api/usuarios
-    @GetMapping
-    public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerTodos()
-    
-    // GET /api/usuarios/{id}
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<UsuarioResponseDTO>> obtenerPorId(@PathVariable int id)
-    
-    // GET /api/usuarios/buscar/identificacion/{id}
-    @GetMapping("/buscar/identificacion/{identificacion}")
-    public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerPorIdentificacion()
-    
-    // POST /api/usuarios
-    @PostMapping
-    public ResponseEntity<ApiResponseDTO<String>> crear(@RequestBody CreateUserDTO dto)
-    
-    // PUT /api/usuarios/{id}
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<String>> actualizar(@PathVariable int id, @RequestBody CreateUserDTO dto)
-    
-    // DELETE /api/usuarios/{id}
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<String>> eliminar(@PathVariable int id)
-}
 ```
 
-#### Validaciones
-- TPD requerido
-- Identificación no vacía
-- Apellido no vacío
-- Nombre no vacío
-- Dígito verificación (opcional)
-- Fecha de nacimiento formato yyyy-MM-dd
+| Anotación | Descripción |
+|-----------|-------------|
+| `@RestController` | Indica que es un controlador REST (devuelve JSON) |
+| `@RequestMapping("/api/usuarios")` | Prefijo base para todos los endpoints |
+| `@CrossOrigin(origins = "*")` | Permite peticiones desde cualquier origen (CORS) |
 
-#### Respuestas
+### Endpoints
+
+#### 1. GET /api/usuarios — Obtener todos
+```java
+@GetMapping
+public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerTodos()
+```
+- **Parámetros:** Ninguno
+- **Retorna:** `200 OK` con lista de usuarios, o `500` en error
+- **Llama a:** `FundUsuarioDAO.obtenerTodosJSON()`
+
+#### 2. GET /api/usuarios/{id} — Obtener por ID
+```java
+@GetMapping("/{id}")
+public ResponseEntity<ApiResponseDTO<UsuarioResponseDTO>> obtenerPorId(@PathVariable int id)
+```
+- **Parámetros:** `id` (int) — USUCONSECUTIVO del usuario
+- **Retorna:** `200 OK` con usuario, `404` si no existe, `500` en error
+- **Llama a:** `FundUsuarioDAO.obtenerPorIdJSON(id)`
+
+#### 3. GET /api/usuarios/buscar/identificacion/{identificacion} — Buscar por identificación
+```java
+@GetMapping("/buscar/identificacion/{identificacion}")
+public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerPorIdentificacion(
+        @PathVariable String identificacion)
+```
+- **Parámetros:** `identificacion` (String) — Número de cédula
+- **Retorna:** `200 OK` con lista, `404` si no hay resultados, `500` en error
+- **Llama a:** `FundUsuarioDAO.obtenerPorIdentificacionJSON(identificacion)`
+
+#### 4. POST /api/usuarios — Crear usuario
+```java
+@PostMapping
+public ResponseEntity<ApiResponseDTO<String>> crear(@RequestBody CreateUserDTO dto)
+```
+- **Parámetros:** `dto` (CreateUserDTO) — Datos del usuario en JSON
+- **Validaciones:**
+  - `identificacion` no puede ser null o vacía
+  - `primerApellido` no puede ser null o vacío
+  - `primerNombre` no puede ser null o vacío
+- **Retorna:** `201 CREATED` si exitoso, `400 BAD REQUEST` si validación falla, `500` en error
+- **Llama a:** `FundUsuarioDAO.crear(tpd, identificacion, dv, primerApellido, segundoApellido, primerNombre, segundoNombre, fechaNacimiento, sexo, tipoSangre)`
+
+#### 5. PUT /api/usuarios/{id} — Actualizar usuario
+```java
+@PutMapping("/{id}")
+public ResponseEntity<ApiResponseDTO<String>> actualizar(
+        @PathVariable int id,
+        @RequestBody CreateUserDTO dto)
+```
+- **Parámetros:** `id` (int), `dto` (CreateUserDTO)
+- **Mismas validaciones que POST**
+- **Retorna:** `200 OK` si exitoso, `400` / `404` / `500` en error
+- **Llama a:** `FundUsuarioDAO.actualizar(id, tpd, identificacion, dv, primerApellido, segundoApellido, primerNombre, segundoNombre, fechaNacimiento, sexo, tipoSangre)`
+
+#### 6. DELETE /api/usuarios/{id} — Eliminar usuario
+```java
+@DeleteMapping("/{id}")
+public ResponseEntity<ApiResponseDTO<String>> eliminar(@PathVariable int id)
+```
+- **Parámetros:** `id` (int) — USUCONSECUTIVO del usuario
+- **Retorna:** `200 OK` si eliminado, `404` si no existe, `500` en error
+- **Llama a:** `FundUsuarioDAO.eliminar(id)`
+
+### Formato de Respuesta JSON
 ```json
-// Éxito (200)
+// Éxito
 {
   "success": true,
   "message": "Usuarios obtenidos correctamente",
-  "data": [ ... ]
+  "data": [ { "usuConsecutivo": 1, "tpd": 1, ... } ],
+  "errors": null
 }
 
-// Error (400/404/500)
+// Error
 {
   "success": false,
-  "message": "Error al obtener usuarios"
+  "message": "La identificación no puede estar vacía",
+  "data": null,
+  "errors": null
 }
 ```
 
-### DTOs (Data Transfer Objects)
+---
 
-#### CreateUserDTO
-**Ubicación:** `src/main/java/com/pqrs/dto/CreateUserDTO.java`
+## DTOs (Data Transfer Objects)
 
-Usado para solicitudes de creación/actualización:
+### CreateUserDTO
+**Archivo:** `src/main/java/com/pqrs/dto/CreateUserDTO.java`
+
+Usado para recibir datos en peticiones POST y PUT.
+
 ```java
-- tpd: int
-- identificacion: String
-- dv: Integer (nullable)
-- primerApellido: String
-- segundoApellido: String (nullable)
-- primerNombre: String
-- segundoNombre: String (nullable)
-- fechaNacimiento: LocalDate (nullable)
-- sexo: String (nullable)
-- tipoSangre: Integer (nullable)
+public class CreateUserDTO {
+    @JsonProperty("tpd")              private int tpd;
+    @JsonProperty("identificacion")   private String identificacion;
+    @JsonProperty("dv")               private Integer dv;           // nullable
+    @JsonProperty("primerApellido")   private String primerApellido;
+    @JsonProperty("segundoApellido")  private String segundoApellido; // nullable
+    @JsonProperty("primerNombre")     private String primerNombre;
+    @JsonProperty("segundoNombre")    private String segundoNombre;   // nullable
+    @JsonProperty("fechaNacimiento")  private LocalDate fechaNacimiento; // nullable
+    @JsonProperty("sexo")             private String sexo;           // nullable
+    @JsonProperty("tipoSangre")       private Integer tipoSangre;     // nullable
+}
 ```
 
-#### UsuarioResponseDTO
-**Ubicación:** `src/main/java/com/pqrs/dto/UsuarioResponseDTO.java`
+**Campos:**
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `tpd` | int | Sí | Tipo de documento (1=CC, 2=CE, 3=PAS, 4=NIT) |
+| `identificacion` | String | Sí | Número de identificación |
+| `dv` | Integer | No | Dígito de verificación |
+| `primerApellido` | String | Sí | Primer apellido |
+| `segundoApellido` | String | No | Segundo apellido |
+| `primerNombre` | String | Sí | Primer nombre |
+| `segundoNombre` | String | No | Segundo nombre |
+| `fechaNacimiento` | LocalDate | No | Fecha de nacimiento (yyyy-MM-dd) |
+| `sexo` | String | No | Sexo (M/F/O) |
+| `tipoSangre` | Integer | No | Tipo de sangre (0=O- a 7=AB+) |
 
-Usado para respuestas de lectura:
-```java
-- usuConsecutivo: int
-- tpd: int
-- identificacion: String
-- dv: Integer (nullable)
-- primerApellido: String
-- segundoApellido: String (nullable)
-- primerNombre: String
-- segundoNombre: String (nullable)
-- fechaNacimiento: LocalDate (nullable)
-- sexo: String (nullable)
-- tipoSangre: Integer (nullable)
+**Ejemplo JSON:**
+```json
+{
+  "tpd": 1,
+  "identificacion": "12345678",
+  "dv": 9,
+  "primerApellido": "García",
+  "segundoApellido": "López",
+  "primerNombre": "Juan",
+  "segundoNombre": "Carlos",
+  "fechaNacimiento": "1990-05-15",
+  "sexo": "M",
+  "tipoSangre": 3
+}
 ```
 
-#### ApiResponseDTO<T>
-**Ubicación:** `src/main/java/com/pqrs/dto/ApiResponseDTO.java`
+### UsuarioResponseDTO
+**Archivo:** `src/main/java/com/pqrs/dto/UsuarioResponseDTO.java`
 
-Envoltorio genérico para todas las respuestas:
+Usado para enviar datos en respuestas GET.
+
 ```java
-- success: boolean
-- message: String
-- data: T (genérico)
-- errors: List<String> (nullable)
+public class UsuarioResponseDTO {
+    @JsonProperty("usuConsecutivo")  private int usuConsecutivo;
+    @JsonProperty("tpd")            private int tpd;
+    @JsonProperty("identificacion") private String identificacion;
+    @JsonProperty("dv")             private Integer dv;
+    @JsonProperty("primerApellido") private String primerApellido;
+    @JsonProperty("segundoApellido") private String segundoApellido;
+    @JsonProperty("primerNombre")   private String primerNombre;
+    @JsonProperty("segundoNombre")  private String segundoNombre;
+    @JsonProperty("fechaNacimiento") private LocalDate fechaNacimiento;
+    @JsonProperty("sexo")           private String sexo;
+    @JsonProperty("tipoSangre")     private Integer tipoSangre;
+}
 ```
 
-### Frontend
+**Diferencia con CreateUserDTO:** Incluye `usuConsecutivo` (el ID auto-incrementado de la BD).
 
-#### index.html
-**Ubicación:** `src/main/resources/static/index.html`
+### ApiResponseDTO\<T\>
+**Archivo:** `src/main/java/com/pqrs/dto/ApiResponseDTO.java`
 
-Componentes principales:
-- Header con título
-- Toolbar con búsqueda y botón crear
-- Tabla de usuarios (responsive)
-- Modal para crear/editar
-- Modal para confirmación de eliminación
-- Contenedor de alertas
+Envoltorio genérico para todas las respuestas de la API.
 
-#### style.css
-**Ubicación:** `src/main/resources/static/css/style.css`
+```java
+public class ApiResponseDTO<T> {
+    @JsonProperty("success") private boolean success;
+    @JsonProperty("message") private String message;
+    @JsonProperty("data")    private T data;
+    @JsonProperty("errors")  private List<String> errors;
+}
+```
 
-Características:
-- Diseño responsivo con media queries
-- Gradientes modernos (púrpura/azul)
-- Animaciones suaves (0.3s)
-- Tabla con hover effects
-- Modales elegantes
-- Botones interactivos
-- Alertas visuales (éxito, error, warning, info)
-- Mobile-first approach
-
-#### main.js
-**Ubicación:** `src/main/resources/static/js/main.js`
-
-Funciones principales:
-- `loadUsuarios()` - Carga desde API
-- `renderTable(usuarios)` - Renderiza tabla
-- `searchByIdentificacion()` - Búsqueda
-- `openCreateModal()` - Modal crear
-- `editUsuario(id)` - Modal editar
-- `deleteUsuario(id)` - Eliminación
-- `handleFormSubmit(e)` - Envío de formulario
-- `showAlert(message, type)` - Notificaciones
-
-Usa Fetch API (sin jQuery ni dependencias externas).
+**Constructores:**
+- `ApiResponseDTO(boolean success, String message)` — Solo estado y mensaje
+- `ApiResponseDTO(boolean success, String message, T data)` — Con datos
+- `ApiResponseDTO(boolean success, String message, List<String> errors)` — Con errores
 
 ---
 
-## Interfaz Consola (JDBC Puro)
+## Clase FundUsuarioDAO
+
+**Archivo:** `src/main/java/com/pqrs/dao/FundUsuarioDAO.java`
+
+### Propósito
+Implementar TODAS las operaciones CRUD contra la tabla `fundusuario` usando JDBC puro. Contiene métodos para la consola (imprimen en pantalla) y métodos JSON (retornan DTOs) para la API REST.
+
+### Librerías Importadas
+```java
+import com.pqrs.util.ConexionJDBC;
+import com.pqrs.dto.UsuarioResponseDTO;
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+```
+
+### MÉTODO 1: crear() — CREATE
+
+**Firma:**
+```java
+public static boolean crear(int tpd, String identificacion, Integer dv,
+                            String primerApellido, String segundoApellido,
+                            String primerNombre, String segundoNombre,
+                            LocalDate fechaNacimiento, String sexo, Integer tipoSangre)
+```
+
+**Parámetros (10):**
+| # | Parámetro | Tipo | Descripción |
+|---|-----------|------|-------------|
+| 1 | `tpd` | int | Tipo de documento |
+| 2 | `identificacion` | String | Número de identificación |
+| 3 | `dv` | Integer | Dígito de verificación (nullable) |
+| 4 | `primerApellido` | String | Primer apellido |
+| 5 | `segundoApellido` | String | Segundo apellido (nullable) |
+| 6 | `primerNombre` | String | Primer nombre |
+| 7 | `segundoNombre` | String | Segundo nombre (nullable) |
+| 8 | `fechaNacimiento` | LocalDate | Fecha de nacimiento (nullable) |
+| 9 | `sexo` | String | Sexo M/F/O (nullable) |
+| 10 | `tipoSangre` | Integer | Tipo de sangre 0-7 (nullable) |
+
+**Retorna:** `boolean` — true si se insertó al menos una fila
+
+**Sentencia SQL:**
+```sql
+INSERT INTO fundusuario (TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO,
+                         PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+```
+
+**Código:**
+```java
+try (Connection conn = ConexionJDBC.obtenerConexion();
+     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    pstmt.setInt(1, tpd);
+    pstmt.setString(2, identificacion);
+    pstmt.setObject(3, dv);
+    pstmt.setString(4, primerApellido);
+    pstmt.setString(5, segundoApellido);
+    pstmt.setString(6, primerNombre);
+    pstmt.setString(7, segundoNombre);
+    pstmt.setObject(8, fechaNacimiento != null ? java.sql.Date.valueOf(fechaNacimiento) : null);
+    pstmt.setString(9, sexo);
+    pstmt.setObject(10, tipoSangre);
+    int filasAfectadas = pstmt.executeUpdate();
+    return filasAfectadas > 0;
+}
+```
+
+**Conversión de fecha:** `java.sql.Date.valueOf(fechaNacimiento)` convierte `LocalDate` a `java.sql.Date` para JDBC.
+
+### MÉTODO 2: obtenerTodos() — READ (Consola)
+
+**Firma:**
+```java
+public static void obtenerTodos()
+```
+
+**Retorna:** void (imprime en consola con formato visual)
+
+**Sentencia SQL:**
+```sql
+SELECT USUCONSECUTIVO, TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO,
+       PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE
+FROM fundusuario
+```
+
+**Formato de salida:** Tabla con bordes ASCII, emojis por categoría, manejo de NULL como "N/A".
+
+### MÉTODO 3: obtenerPorId() — READ por ID (Consola)
+
+**Firma:**
+```java
+public static void obtenerPorId(int usuConsecutivo)
+```
+
+**Parámetros:**
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `usuConsecutivo` | int | ID del usuario |
+
+**Sentencia SQL:**
+```sql
+SELECT * FROM fundusuario WHERE USUCONSECUTIVO = ?
+```
+
+**Formato de salida:** Detalle completo con 13 campos organizados en categorías:
+- 📋 INFORMACIÓN PERSONAL (USUCONSECUTIVO, TPD, IDENTIFICACION, DV)
+- 👤 DATOS PERSONALES (Apellidos, Nombres, Fecha Nacimiento, Sexo)
+- 🏥 INFORMACIÓN MÉDICA (Tipo Sangre, Altura, Estrato)
+- 📍 INFORMACIÓN ADICIONAL (Depto Nacimiento, Municipio, Estado Civil, Educación, Ocupación, EPS, SISBEN)
+
+### MÉTODO 4: obtenerPorIdentificacion() — READ por cédula (Consola)
+
+**Firma:**
+```java
+public static void obtenerPorIdentificacion(String identificacion)
+```
+
+**Sentencia SQL:**
+```sql
+SELECT * FROM fundusuario WHERE IDENTIFICACION = ?
+```
+
+### MÉTODO 5: actualizar() — UPDATE
+
+**Firma:**
+```java
+public static boolean actualizar(int usuConsecutivo, int tpd, String identificacion,
+                                 Integer dv, String primerApellido, String segundoApellido,
+                                 String primerNombre, String segundoNombre,
+                                 LocalDate fechaNacimiento, String sexo, Integer tipoSangre)
+```
+
+**Parámetros (11):** Los 10 campos de datos + `usuConsecutivo` para el WHERE.
+
+**Sentencia SQL:**
+```sql
+UPDATE fundusuario SET TPD = ?, IDENTIFICACION = ?, DV = ?,
+       PRIMERAPELLIDO = ?, SEGUNDOAPELLIDO = ?,
+       PRIMERNOMBRE = ?, SEGUNDONOMBRE = ?,
+       FECHANACIMIENTO = ?, SEXO = ?, TIPOSANGRE = ?
+WHERE USUCONSECUTIVO = ?
+```
+
+### MÉTODO 6: eliminar() — DELETE
+
+**Firma:**
+```java
+public static boolean eliminar(int usuConsecutivo)
+```
+
+**Sentencia SQL:**
+```sql
+DELETE FROM fundusuario WHERE USUCONSECUTIVO = ?
+```
+
+### MÉTODOS JSON (para API REST)
+
+#### obtenerTodosJSON()
+```java
+public static List<UsuarioResponseDTO> obtenerTodosJSON()
+```
+- **Retorna:** `List<UsuarioResponseDTO>` con todos los usuarios
+- **SQL:** `SELECT USUCONSECUTIVO, TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO, PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE FROM fundusuario`
+- **Conversión:** `rs.getDate("FECHANACIMIENTO").toLocalDate()` para fechas
+
+#### obtenerPorIdJSON(int usuConsecutivo)
+```java
+public static UsuarioResponseDTO obtenerPorIdJSON(int usuConsecutivo)
+```
+- **Retorna:** `UsuarioResponseDTO` o `null` si no existe
+- **SQL:** `SELECT * FROM fundusuario WHERE USUCONSECUTIVO = ?`
+
+#### obtenerPorIdentificacionJSON(String identificacion)
+```java
+public static List<UsuarioResponseDTO> obtenerPorIdentificacionJSON(String identificacion)
+```
+- **Retorna:** `List<UsuarioResponseDTO>` (puede estar vacía)
+- **SQL:** `SELECT * FROM fundusuario WHERE IDENTIFICACION = ?`
 
 ---
 
-## CLASE ConexionJDBC
+## Clase ConexionJDBC
 
 **Archivo:** `src/main/java/com/pqrs/util/ConexionJDBC.java`
 
 ### Propósito
-Gestionar la conexión a la base de datos MariaDB usando JDBC.
+Gestionar la conexión a MariaDB usando JDBC. Carga el driver una sola vez (bloque static) y expone métodos para obtener/cerrar conexiones.
 
 ### Librerías Importadas
 ```java
 import java.sql.*;
 ```
-- `java.sql.Connection` - Representa la conexión a la BD
-- `java.sql.DriverManager` - Carga el driver y obtiene conexiones
-- `java.sql.SQLException` - Maneja excepciones de BD
 
 ### Variables Estáticas (Constantes)
 ```java
-private static final String URL = "jdbc:mariadb://localhost:3306/bdpqrsej";
-```
-- **URL**: Ubicación de la base de datos
-  - `jdbc:mariadb://` - Protocolo JDBC para MariaDB
-  - `localhost:3306` - Host y puerto (3306 es el puerto por defecto)
-  - `bdpqrsej` - Nombre de la base de datos
-
-```java
-private static final String USER = "root";
-```
-- **USER**: Usuario de MariaDB que accede a la base de datos
-
-```java
+private static final String URL      = "jdbc:mariadb://localhost:3306/bdpqrsej";
+private static final String USER     = "root";
 private static final String PASSWORD = "JacMar1953";
+private static final String DRIVER   = "org.mariadb.jdbc.Driver";
 ```
-- **PASSWORD**: Contraseña del usuario root
 
-```java
-private static final String DRIVER = "org.mariadb.jdbc.Driver";
-```
-- **DRIVER**: Nombre completo de la clase del driver MariaDB JDBC
-  - Se usa para cargar dinámicamente el driver
-  - Está en el archivo JAR: `lib/mariadb-java-client-3.0.8.jar`
+| Constante | Valor | Descripción |
+|-----------|-------|-------------|
+| `URL` | `jdbc:mariadb://localhost:3306/bdpqrsej` | Cadena de conexión JDBC |
+| `USER` | `root` | Usuario de MariaDB |
+| `PASSWORD` | `JacMar1953` | Contraseña de MariaDB |
+| `DRIVER` | `org.mariadb.jdbc.Driver` | Clase del driver JDBC |
 
-### Bloque Estático (static)
+### Bloque Estático
 ```java
 static {
     try {
@@ -322,536 +512,139 @@ static {
     }
 }
 ```
-- Se ejecuta UNA SOLA VEZ cuando la clase se carga
-- `Class.forName(DRIVER)` - Carga el driver de MariaDB en memoria
-- Si el driver no se encuentra, lanza `ClassNotFoundException`
+- Se ejecuta UNA SOLA VEZ al cargar la clase
+- `Class.forName()` registra el driver JDBC en el `DriverManager`
 
 ### Métodos
 
-#### 1. obtenerConexion()
+#### obtenerConexion()
 ```java
-public static Connection obtenerConexion() throws SQLException {
-    return DriverManager.getConnection(URL, USER, PASSWORD);
-}
+public static Connection obtenerConexion() throws SQLException
 ```
-**Parámetros:** Ninguno
+- **Retorna:** `Connection` — Conexión activa a MariaDB
+- **Implementación:** `DriverManager.getConnection(URL, USER, PASSWORD)`
 
-**Retorna:** `Connection` - Objeto de conexión a la BD
-
-**Qué hace:**
-- Usa `DriverManager.getConnection()` para conectarse a MariaDB
-- Envía la URL, usuario y contraseña
-- Si la conexión falla, lanza `SQLException`
-
-**Uso en otros archivos:**
+#### cerrarConexion(Connection conn)
 ```java
-Connection conn = ConexionJDBC.obtenerConexion();
+public static void cerrarConexion(Connection conn)
 ```
+- **Parámetros:** `conn` — Conexión a cerrar
+- **Verifica:** `conn != null && !conn.isClosed()` antes de cerrar
 
-#### 2. cerrarConexion()
+#### cerrarRecursos(ResultSet rs, Statement stmt, Connection conn)
 ```java
-public static void cerrarConexion(Connection conn) {
-    try {
-        if (conn != null && !conn.isClosed()) {
-            conn.close();
-        }
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-}
+public static void cerrarRecursos(ResultSet rs, Statement stmt, Connection conn)
 ```
-**Parámetros:** 
-- `Connection conn` - La conexión a cerrar
-
-**Retorna:** void (nada)
-
-**Qué hace:**
-- Verifica que la conexión no sea nula (`conn != null`)
-- Verifica que no esté cerrada (`!conn.isClosed()`)
-- Si todo es válido, cierra la conexión con `conn.close()`
-- Maneja errores con `try-catch`
-
-#### 3. cerrarRecursos()
-```java
-public static void cerrarRecursos(ResultSet rs, Statement stmt, Connection conn) {
-    try {
-        if (rs != null) rs.close();
-        if (stmt != null) stmt.close();
-        cerrarConexion(conn);
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-}
-```
-**Parámetros:**
-- `ResultSet rs` - Los resultados de una consulta
-- `Statement stmt` - La sentencia SQL ejecutada
-- `Connection conn` - La conexión a la BD
-
-**Retorna:** void (nada)
-
-**Qué hace:**
-- Cierra los resultados (`rs.close()`)
-- Cierra la sentencia (`stmt.close()`)
-- Cierra la conexión llamando a `cerrarConexion()`
-- Limpia todos los recursos para evitar fugas de memoria
+- Cierra ResultSet → Statement → Connection en orden
 
 ---
 
-## CLASE FundUsuarioDAO
-
-**Archivo:** `src/main/java/com/pqrs/dao/FundUsuarioDAO.java`
-
-### Propósito
-Implementar todas las operaciones CRUD (Create, Read, Update, Delete) en la tabla `fundusuario`.
-
-### Librerías Importadas
-```java
-import com.pqrs.util.ConexionJDBC;
-import java.sql.*;
-```
-- `ConexionJDBC` - Clase personalizada para obtener conexiones
-- `java.sql.Connection` - Conexión a la BD
-- `java.sql.PreparedStatement` - Ejecuta sentencias SQL parametrizadas
-- `java.sql.Statement` - Ejecuta sentencias SQL simples
-- `java.sql.ResultSet` - Contiene resultados de una consulta
-- `java.sql.SQLException` - Excepciones de base de datos
-
-### MÉTODO 1: crear()
-
-**Firma del método:**
-```java
-public static boolean crear(int tpd, String identificacion, Integer dv, 
-                            String primerApellido, String segundoApellido, 
-                            String primerNombre, String segundoNombre)
-```
-
-**Parámetros:**
-| Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `tpd` | int | Tipo de documento (1=CC, 2=CE, etc) |
-| `identificacion` | String | Número de identificación |
-| `dv` | Integer | Dígito de verificación (puede ser nulo) |
-| `primerApellido` | String | Primer apellido (obligatorio) |
-| `segundoApellido` | String | Segundo apellido (opcional) |
-| `primerNombre` | String | Primer nombre (obligatorio) |
-| `segundoNombre` | String | Segundo nombre (opcional) |
-
-**Retorna:** `boolean` (true si se insertó, false si falló)
-
-**Sentencia SQL:**
-```sql
-INSERT INTO fundusuario (TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO, 
-                        PRIMERNOMBRE, SEGUNDONOMBRE) 
-VALUES (?, ?, ?, ?, ?, ?, ?)
-```
-
-**Explicación de la sentencia:**
-- `INSERT INTO fundusuario` - Inserta una nueva fila
-- `(TPD, IDENTIFICACION, ...)` - Especifica las columnas a llenar
-- `VALUES (?, ?, ...)` - Los `?` son placeholders que se reemplazarán con los valores
-
-**Código paso a paso:**
-```java
-String sql = "INSERT INTO fundusuario (TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO, " +
-             "PRIMERNOMBRE, SEGUNDONOMBRE) VALUES (?, ?, ?, ?, ?, ?, ?)";
-```
-Define la sentencia SQL
-
-```java
-try (Connection conn = ConexionJDBC.obtenerConexion();
-     PreparedStatement pstmt = conn.prepareStatement(sql)) {
-```
-- `try-with-resources` - Cierra automáticamente conexión y statement
-- Obtiene conexión de ConexionJDBC
-- Prepara la sentencia SQL (parametrizada para seguridad)
-
-```java
-pstmt.setInt(1, tpd);
-pstmt.setString(2, identificacion);
-pstmt.setObject(3, dv);
-pstmt.setString(4, primerApellido);
-pstmt.setString(5, segundoApellido);
-pstmt.setString(6, primerNombre);
-pstmt.setString(7, segundoNombre);
-```
-Remplaza los placeholders `?` con valores:
-- `setInt(1, tpd)` - Posición 1 es INT
-- `setString(2, identificacion)` - Posición 2 es STRING
-- `setObject(3, dv)` - Posición 3 puede ser nula
-- Etc.
-
-```java
-int filasAfectadas = pstmt.executeUpdate();
-return filasAfectadas > 0;
-```
-- `executeUpdate()` - Ejecuta INSERT/UPDATE/DELETE
-- Retorna número de filas afectadas
-- Si > 0, significa que se insertó correctamente
-
-### MÉTODO 2: obtenerTodos()
-
-**Firma del método:**
-```java
-public static void obtenerTodos()
-```
-
-**Parámetros:** Ninguno
-
-**Retorna:** void (imprime en consola)
-
-**Sentencia SQL:**
-```sql
-SELECT USUCONSECUTIVO, IDENTIFICACION, PRIMERAPELLIDO, SEGUNDOAPELLIDO, 
-       PRIMERNOMBRE, SEGUNDONOMBRE, SEXO 
-FROM fundusuario
-```
-
-**Código paso a paso:**
-```java
-try (Connection conn = ConexionJDBC.obtenerConexion();
-     Statement stmt = conn.createStatement();
-     ResultSet rs = stmt.executeQuery(sql)) {
-```
-- Obtiene conexión
-- `createStatement()` - Crea una sentencia simple (no parametrizada)
-- `executeQuery()` - Ejecuta SELECT y retorna ResultSet
-
-```java
-System.out.println("\n=== Todos los Usuarios ===");
-while (rs.next()) {
-```
-- `rs.next()` - Se mueve a la siguiente fila
-- El bucle continúa mientras haya filas
-
-```java
-System.out.println("ID: " + rs.getInt("USUCONSECUTIVO") + 
-                 " | Cédula: " + rs.getString("IDENTIFICACION") + 
-                 " | Nombre: " + rs.getString("PRIMERNOMBRE") + " " + 
-                 (rs.getString("SEGUNDONOMBRE") != null ? rs.getString("SEGUNDONOMBRE") : "") +
-                 " | Apellido: " + rs.getString("PRIMERAPELLIDO") + " " +
-                 (rs.getString("SEGUNDOAPELLIDO") != null ? rs.getString("SEGUNDOAPELLIDO") : ""));
-```
-- Obtiene valores de cada columna
-- `rs.getInt("USUCONSECUTIVO")` - Obtiene INT
-- `rs.getString("IDENTIFICACION")` - Obtiene STRING
-- `? : ""` - Si es nulo, imprime vacío
-
-### MÉTODO 3: obtenerPorId()
-
-**Firma del método:**
-```java
-public static void obtenerPorId(int usuConsecutivo)
-```
-
-**Parámetros:**
-| Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `usuConsecutivo` | int | ID del usuario (USUCONSECUTIVO) |
-
-**Retorna:** void (imprime en consola)
-
-**Sentencia SQL:**
-```sql
-SELECT * FROM fundusuario 
-WHERE USUCONSECUTIVO = ?
-```
-
-**Explicación:**
-- `SELECT *` - Obtiene todas las columnas
-- `WHERE USUCONSECUTIVO = ?` - Filtra por el ID
-
-**Código:**
-```java
-pstmt.setInt(1, usuConsecutivo);
-ResultSet rs = pstmt.executeQuery();
-
-if (rs.next()) {
-    // Imprime datos del usuario
-} else {
-    System.out.println("Usuario no encontrado");
-}
-```
-
-### MÉTODO 4: obtenerPorIdentificacion()
-
-**Firma del método:**
-```java
-public static void obtenerPorIdentificacion(String identificacion)
-```
-
-**Parámetros:**
-| Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `identificacion` | String | Número de cédula/identificación |
-
-**Retorna:** void (imprime en consola)
-
-**Sentencia SQL:**
-```sql
-SELECT * FROM fundusuario 
-WHERE IDENTIFICACION = ?
-```
-
-### MÉTODO 5: actualizar()
-
-**Firma del método:**
-```java
-public static boolean actualizar(int usuConsecutivo, String primerApellido, 
-                                 String segundoApellido, String primerNombre, 
-                                 String segundoNombre, String sexo)
-```
-
-**Parámetros:**
-| Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `usuConsecutivo` | int | ID del usuario a actualizar |
-| `primerApellido` | String | Nuevo primer apellido |
-| `segundoApellido` | String | Nuevo segundo apellido |
-| `primerNombre` | String | Nuevo primer nombre |
-| `segundoNombre` | String | Nuevo segundo nombre |
-| `sexo` | String | Nuevo sexo (M/F/O) |
-
-**Retorna:** `boolean` (true si actualizó, false si falló)
-
-**Sentencia SQL:**
-```sql
-UPDATE fundusuario 
-SET PRIMERAPELLIDO = ?, SEGUNDOAPELLIDO = ?, 
-    PRIMERNOMBRE = ?, SEGUNDONOMBRE = ?, SEXO = ? 
-WHERE USUCONSECUTIVO = ?
-```
-
-**Explicación:**
-- `UPDATE fundusuario` - Modifica la tabla
-- `SET columna = ?` - Asigna nuevos valores
-- `WHERE USUCONSECUTIVO = ?` - Solo modifica esta fila
-
-### MÉTODO 6: eliminar()
-
-**Firma del método:**
-```java
-public static boolean eliminar(int usuConsecutivo)
-```
-
-**Parámetros:**
-| Parámetro | Tipo | Descripción |
-|-----------|------|-------------|
-| `usuConsecutivo` | int | ID del usuario a eliminar |
-
-**Retorna:** `boolean` (true si eliminó, false si falló)
-
-**Sentencia SQL:**
-```sql
-DELETE FROM fundusuario 
-WHERE USUCONSECUTIVO = ?
-```
-
-**Explicación:**
-- `DELETE FROM fundusuario` - Elimina filas
-- `WHERE USUCONSECUTIVO = ?` - Solo elimina esta fila
-
----
-
-## CLASE Principal
+## Clase Principal (Consola)
 
 **Archivo:** `src/main/java/com/pqrs/Principal.java`
 
 ### Propósito
-Programa principal que presenta un menú interactivo al usuario.
+Programa de consola con menú interactivo para operaciones CRUD.
 
 ### Librerías Importadas
 ```java
 import com.pqrs.dao.FundUsuarioDAO;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 ```
-- `FundUsuarioDAO` - Clase con métodos CRUD
-- `java.util.Scanner` - Lee entrada del usuario
 
 ### Variables Globales
 ```java
 private static Scanner scanner = new Scanner(System.in);
-```
-- **scanner** - Lee texto que escribe el usuario en la consola
-- `System.in` - Entrada estándar (teclado)
-
-### MÉTODO 1: main()
-
-**Firma:**
-```java
-public static void main(String[] args)
+private static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 ```
 
-**Propósito:** Punto de entrada del programa
+### Métodos
 
-**Código:**
-```java
-boolean salir = false;
+| Método | Propósito |
+|--------|-----------|
+| `main(String[] args)` | Punto de entrada, bucle del menú |
+| `mostrarMenu()` | Imprime menú con 7 opciones en formato ASCII |
+| `obtenerOpcion()` | Lee opción numérica del usuario |
+| `crear()` | Pide 10 campos y llama a `FundUsuarioDAO.crear()` |
+| `obtenerTodos()` | Llama a `FundUsuarioDAO.obtenerTodos()` |
+| `obtenerPorId()` | Pide ID y llama a `FundUsuarioDAO.obtenerPorId()` |
+| `obtenerPorIdentificacion()` | Pide cédula y busca |
+| `actualizar()` | Pide ID + 10 campos y llama a `FundUsuarioDAO.actualizar()` |
+| `eliminar()` | Pide ID + confirmación, llama a `FundUsuarioDAO.eliminar()` |
 
-while (!salir) {
-    mostrarMenu();
-    int opcion = obtenerOpcion();
-    
-    switch (opcion) {
-        case 1: crear(); break;
-        case 2: obtenerTodos(); break;
-        case 3: obtenerPorId(); break;
-        case 4: obtenerPorIdentificacion(); break;
-        case 5: actualizar(); break;
-        case 6: eliminar(); break;
-        case 7: salir = true; break;
-    }
-}
-scanner.close();
+### Menú
+```
+╔════════════════════════════════════════════════╗
+║     CRUD USUARIOS - TABLA FUNDUSUARIO         ║
+╠════════════════════════════════════════════════╣
+║ 1. Crear usuario                              ║
+║ 2. Obtener todos los usuarios                 ║
+║ 3. Obtener usuario por ID (USUCONSECUTIVO)    ║
+║ 4. Obtener usuario por Identificación         ║
+║ 5. Actualizar usuario                         ║
+║ 6. Eliminar usuario                           ║
+║ 7. Salir                                      ║
+╚════════════════════════════════════════════════╝
 ```
 
-**Explicación:**
-- `while (!salir)` - Bucle infinito hasta que salir = true
-- `mostrarMenu()` - Imprime opciones
-- `obtenerOpcion()` - Lee lo que escribió el usuario
-- `switch` - Ejecuta la opción seleccionada
-- `scanner.close()` - Cierra el lector de entrada
+---
 
-### MÉTODO 2: mostrarMenu()
+## Frontend Web
 
-Imprime el menú en la consola con 7 opciones.
+### index.html
+**Ubicación:** `src/main/resources/static/index.html`
 
-### MÉTODO 3: obtenerOpcion()
+**Componentes:**
+- Header con título "Gestión de Usuarios PQRS"
+- Toolbar con campo de búsqueda y botones (🔍 Buscar, 🔄 Resetear, ➕ Nuevo Usuario)
+- Tabla de usuarios con columnas: ID, Documento, Identificación, Nombre Completo, Acciones
+- Modal para crear/editar usuario con todos los campos del CRUD
+- Modal de confirmación de eliminación
+- Contenedor de alertas (éxito/error)
+- Loading spinner
 
-```java
-private static int obtenerOpcion() {
-    try {
-        return Integer.parseInt(scanner.nextLine());
-    } catch (NumberFormatException e) {
-        return -1;
-    }
-}
-```
+### style.css
+**Ubicación:** `src/main/resources/static/css/style.css`
 
-**Qué hace:**
-- Lee una línea del usuario
-- `Integer.parseInt()` - Convierte texto a número
-- Si no es número válido, retorna -1
+**Características:**
+- Diseño responsivo (funciona en desktop, tablet, mobile)
+- Variables CSS para colores
+- Gradientes (púrpura/azul)
+- Animaciones y transiciones suaves (0.3s)
+- Efectos hover en botones y filas de tabla
+- Modales con overlay semi-transparente
+- Alertas codificadas por color (success, error, warning, info)
 
-### MÉTODO 4: crear()
+### main.js
+**Ubicación:** `src/main/resources/static/js/main.js`
 
-```java
-private static void crear() {
-    System.out.println("\n--- CREAR NUEVO USUARIO ---");
-    
-    System.out.print("Tipo de Documento (TPD): ");
-    int tpd = Integer.parseInt(scanner.nextLine());
-    
-    System.out.print("Identificación: ");
-    String identificacion = scanner.nextLine().trim();
-    if (identificacion.isEmpty()) {
-        System.out.println("✗ La identificación no puede estar vacía");
-        return;
-    }
-    
-    // ... más campos ...
-    
-    if (FundUsuarioDAO.crear(tpd, identificacion, dv, primerApellido, 
-                            segundoApellido, primerNombre, segundoNombre)) {
-        System.out.println("✓ Usuario creado exitosamente");
-    } else {
-        System.out.println("✗ Error al crear el usuario");
-    }
-}
-```
+**Funciones principales:**
+| Función | Descripción |
+|---------|-------------|
+| `loadUsuarios()` | GET /api/usuarios → renderiza tabla |
+| `renderTable(usuarios)` | Construye filas de la tabla HTML |
+| `searchByIdentificacion()` | GET /api/usuarios/buscar/identificacion/{id} |
+| `resetSearch()` | Vuelve a cargar todos los usuarios |
+| `openCreateModal()` | Abre modal en modo creación |
+| `openEditModal(id)` | Abre modal en modo edición con datos precargados |
+| `deleteUsuario(id)` | DELETE /api/usuarios/{id} con confirmación |
+| `handleFormSubmit(e)` | POST o PUT según modo (crear/editar) |
+| `showAlert(message, type)` | Muestra notificación visual |
+| `closeModal()` / `closeDeleteModal()` | Cierra modales |
 
-**Pasos:**
-1. Pide al usuario cada dato requerido
-2. Valida que no estén vacíos
-3. Llama a `FundUsuarioDAO.crear()`
-4. Imprime resultado
-
-### MÉTODO 5: obtenerTodos()
-
-```java
-private static void obtenerTodos() {
-    System.out.println("\n--- OBTENER TODOS LOS USUARIOS ---");
-    FundUsuarioDAO.obtenerTodos();
-}
-```
-Solo llama al método del DAO.
-
-### MÉTODO 6: obtenerPorId()
-
-```java
-private static void obtenerPorId() {
-    System.out.println("\n--- OBTENER USUARIO POR ID ---");
-    System.out.print("ID del usuario: ");
-    try {
-        int id = Integer.parseInt(scanner.nextLine());
-        FundUsuarioDAO.obtenerPorId(id);
-    } catch (NumberFormatException e) {
-        System.out.println("✗ ID no válido");
-    }
-}
-```
-
-**Pasos:**
-1. Pide el ID
-2. Convierte a entero
-3. Llama al método del DAO
-4. Si hay error de formato, imprime mensaje
-
-### MÉTODO 7: obtenerPorIdentificacion()
-
-Igual a obtenerPorId() pero busca por cédula.
-
-### MÉTODO 8: actualizar()
-
-```java
-private static void actualizar() {
-    System.out.println("\n--- ACTUALIZAR USUARIO ---");
-    System.out.print("ID del usuario a actualizar: ");
-    int usuConsecutivo = Integer.parseInt(scanner.nextLine());
-    
-    // Pide nuevos datos
-    System.out.print("Nuevo primer apellido: ");
-    String primerApellido = scanner.nextLine().trim();
-    // ... más campos ...
-    
-    if (FundUsuarioDAO.actualizar(usuConsecutivo, primerApellido, 
-                                  segundoApellido, primerNombre, 
-                                  segundoNombre, sexo)) {
-        System.out.println("✓ Usuario actualizado exitosamente");
-    }
-}
-```
-
-### MÉTODO 9: eliminar()
-
-```java
-private static void eliminar() {
-    System.out.println("\n--- ELIMINAR USUARIO ---");
-    System.out.print("ID del usuario a eliminar: ");
-    int usuConsecutivo = Integer.parseInt(scanner.nextLine());
-    
-    System.out.print("¿Estás seguro? (s/n): ");
-    String confirmacion = scanner.nextLine().trim().toLowerCase();
-    
-    if (confirmacion.equals("s")) {
-        if (FundUsuarioDAO.eliminar(usuConsecutivo)) {
-            System.out.println("✓ Usuario eliminado exitosamente");
-        }
-    }
-}
-```
-
-**Seguridad:** Pide confirmación antes de eliminar.
+**Tecnología:** JavaScript vainilla (ES6), Fetch API, sin dependencias externas.
 
 ---
 
 ## Sentencias SQL
 
-### TABLA FUNDUSUARIO
+### Tabla FUNDUSUARIO (estructura usada)
 ```sql
 CREATE TABLE fundusuario (
     USUCONSECUTIVO INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    TPD INT(11) NOT NULL DEFAULT '0',
+    TPD INT(11) NOT NULL DEFAULT 0,
     IDENTIFICACION VARCHAR(20) NOT NULL,
     DV INT(11) NULL DEFAULT NULL,
     PRIMERAPELLIDO VARCHAR(100) NOT NULL,
@@ -860,96 +653,64 @@ CREATE TABLE fundusuario (
     SEGUNDONOMBRE VARCHAR(100) NULL,
     FECHANACIMIENTO DATE NULL,
     SEXO VARCHAR(3) NULL,
-    ... (más campos)
-)
+    TIPOSANGRE INT(11) NULL,
+    ALTURA VARCHAR(10) NULL,
+    ESTRATO INT(11) NULL,
+    DEPTONACIMIENTO INT(11) NULL,
+    MUNICIPIONACIMIENTO INT(11) NULL,
+    ESTADOCIVIL INT(11) NULL,
+    EDUCACION INT(11) NULL,
+    OCUPACIONID INT(11) NULL,
+    EPS INT(11) NULL,
+    SISBEN INT(11) NULL
+);
 ```
 
-### SENTENCIAS USADAS EN EL CRUD
+### Sentencias CRUD
 
-**1. INSERT (Crear):**
+**INSERT (crear):**
 ```sql
-INSERT INTO fundusuario (TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, 
-                        SEGUNDOAPELLIDO, PRIMERNOMBRE, SEGUNDONOMBRE) 
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO fundusuario (TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO,
+                         PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ```
 
-**2. SELECT Todos:**
+**SELECT todos (consola):**
 ```sql
-SELECT USUCONSECUTIVO, IDENTIFICACION, PRIMERAPELLIDO, SEGUNDOAPELLIDO, 
-       PRIMERNOMBRE, SEGUNDONOMBRE, SEXO 
+SELECT USUCONSECUTIVO, TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO,
+       PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE
 FROM fundusuario
 ```
 
-**3. SELECT por ID:**
+**SELECT todos (JSON):**
 ```sql
-SELECT * FROM fundusuario 
+SELECT USUCONSECUTIVO, TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO,
+       PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE
+FROM fundusuario
+```
+
+**SELECT por ID:**
+```sql
+SELECT * FROM fundusuario WHERE USUCONSECUTIVO = ?
+```
+
+**SELECT por Identificación:**
+```sql
+SELECT * FROM fundusuario WHERE IDENTIFICACION = ?
+```
+
+**UPDATE:**
+```sql
+UPDATE fundusuario SET TPD = ?, IDENTIFICACION = ?, DV = ?,
+       PRIMERAPELLIDO = ?, SEGUNDOAPELLIDO = ?,
+       PRIMERNOMBRE = ?, SEGUNDONOMBRE = ?,
+       FECHANACIMIENTO = ?, SEXO = ?, TIPOSANGRE = ?
 WHERE USUCONSECUTIVO = ?
 ```
 
-**4. SELECT por Identificación:**
+**DELETE:**
 ```sql
-SELECT * FROM fundusuario 
-WHERE IDENTIFICACION = ?
-```
-
-**5. UPDATE:**
-```sql
-UPDATE fundusuario 
-SET PRIMERAPELLIDO = ?, SEGUNDOAPELLIDO = ?, 
-    PRIMERNOMBRE = ?, SEGUNDONOMBRE = ?, SEXO = ? 
-WHERE USUCONSECUTIVO = ?
-```
-
-**6. DELETE:**
-```sql
-DELETE FROM fundusuario 
-WHERE USUCONSECUTIVO = ?
-```
-
----
-
-## Flujo de Ejecución Completo
-
-### Ejemplo: Crear un usuario
-
-```
-1. Usuario ejecuta: java com.pqrs.Principal
-   ↓
-2. Se ejecuta main()
-   ↓
-3. Se muestra el menú
-   ↓
-4. Usuario selecciona opción 1 (Crear)
-   ↓
-5. Se llama a Principal.crear()
-   ↓
-6. Pide datos al usuario
-   ↓
-7. Usuario ingresa: TPD=1, Identificación=12345678, Nombre=Juan
-   ↓
-8. Principal.crear() llama a FundUsuarioDAO.crear(1, "12345678", null, "Pérez", null, "Juan", null)
-   ↓
-9. FundUsuarioDAO.crear():
-   - Obtiene conexión: ConexionJDBC.obtenerConexion()
-   - Prepara sentencia: "INSERT INTO fundusuario (...) VALUES (?, ?, ...)"
-   - Establece parámetros: pstmt.setInt(1, 1), pstmt.setString(2, "12345678"), etc.
-   - Ejecuta: pstmt.executeUpdate()
-   ↓
-10. ConexionJDBC.obtenerConexion():
-    - Carga driver: Class.forName("org.mariadb.jdbc.Driver")
-    - Conecta a MariaDB: DriverManager.getConnection(URL, USER, PASSWORD)
-    ↓
-11. MariaDB:
-    - Autentica usuario root con contraseña
-    - Ejecuta INSERT en tabla fundusuario
-    ↓
-12. Retorna número de filas afectadas (1)
-    ↓
-13. FundUsuarioDAO.crear() retorna true
-    ↓
-14. Principal.crear() imprime: "✓ Usuario creado exitosamente"
-    ↓
-15. Vuelve al menú
+DELETE FROM fundusuario WHERE USUCONSECUTIVO = ?
 ```
 
 ---
@@ -957,67 +718,155 @@ WHERE USUCONSECUTIVO = ?
 ## Variables y Librerías
 
 ### Librerías Java Estándar
-
-| Librería | Clase | Uso |
-|----------|-------|-----|
+| Paquete | Clase | Uso |
+|---------|-------|-----|
 | `java.sql` | `Connection` | Conexión a BD |
-| `java.sql` | `DriverManager` | Carga driver y obtiene conexiones |
-| `java.sql` | `PreparedStatement` | Ejecuta sentencias parametrizadas |
-| `java.sql` | `Statement` | Ejecuta sentencias SQL |
-| `java.sql` | `ResultSet` | Contiene resultados de SELECT |
-| `java.sql` | `SQLException` | Excepciones de BD |
-| `java.util` | `Scanner` | Lee entrada del usuario |
+| `java.sql` | `DriverManager` | Obtener conexiones JDBC |
+| `java.sql` | `PreparedStatement` | Sentencias SQL parametrizadas (anti-SQL injection) |
+| `java.sql` | `Statement` | Sentencias SQL simples |
+| `java.sql` | `ResultSet` | Resultados de consultas SELECT |
+| `java.sql` | `SQLException` | Excepciones de base de datos |
+| `java.sql` | `Date` | Fecha SQL (convertida desde LocalDate) |
+| `java.time` | `LocalDate` | Fecha sin hora (API moderna) |
+| `java.time.format` | `DateTimeFormatter` | Formateo de fechas (yyyy-MM-dd) |
+| `java.util` | `Scanner` | Lectura de entrada del usuario |
+| `java.util` | `ArrayList` | Lista dinámica para resultados JSON |
+| `java.util` | `List` | Interfaz de lista |
 
-### Driver JDBC Externo
+### Librerías Spring Boot
+| Paquete | Clase/Anotación | Uso |
+|---------|-----------------|-----|
+| `org.springframework.boot` | `SpringApplication` | Iniciar aplicación |
+| `org.springframework.boot.autoconfigure` | `@SpringBootApplication` | Auto-configuración |
+| `org.springframework.web.bind.annotation` | `@RestController` | Controlador REST |
+| `org.springframework.web.bind.annotation` | `@RequestMapping` | Ruta base |
+| `org.springframework.web.bind.annotation` | `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping` | Verbos HTTP |
+| `org.springframework.web.bind.annotation` | `@PathVariable` | Parámetro de ruta |
+| `org.springframework.web.bind.annotation` | `@RequestBody` | Cuerpo de petición |
+| `org.springframework.web.bind.annotation` | `@CrossOrigin` | CORS |
+| `org.springframework.http` | `ResponseEntity` | Respuesta HTTP con estado |
+| `org.springframework.http` | `HttpStatus` | Códigos de estado HTTP |
 
-| Archivo | Descripción |
-|---------|-------------|
-| `lib/mariadb-java-client-3.0.8.jar` | Driver JDBC de MariaDB |
+### Librerías Jackson (JSON)
+| Paquete | Anotación | Uso |
+|---------|-----------|-----|
+| `com.fasterxml.jackson.annotation` | `@JsonProperty` | Nombre de campo en JSON |
+
+### Dependencias Maven (pom.xml)
+| Grupo | Artefacto | Versión | Propósito |
+|-------|-----------|---------|-----------|
+| `org.springframework.boot` | `spring-boot-starter-web` | 3.4.3 | Spring MVC + Tomcat |
+| `org.springframework.boot` | `spring-boot-starter-data-jpa` | 3.4.3 | JPA/Hibernate |
+| `org.mariadb.jdbc` | `mariadb-java-client` | 3.0.8 | Driver MariaDB |
+| `mysql` | `mysql-connector-java` | 8.0.33 | Driver MySQL |
+| `org.projectlombok` | `lombok` | 1.18.34 | Reducir boilerplate |
+| `org.springframework.boot` | `spring-boot-starter-test` | 3.4.3 | Testing |
 
 ### Variables por Clase
 
 **ConexionJDBC.java:**
-- `URL` - Cadena de conexión
-- `USER` - Usuario de BD
-- `PASSWORD` - Contraseña
-- `DRIVER` - Clase del driver
+- `URL` — `jdbc:mariadb://localhost:3306/bdpqrsej`
+- `USER` — `root`
+- `PASSWORD` — `JacMar1953`
+- `DRIVER` — `org.mariadb.jdbc.Driver`
 
 **FundUsuarioDAO.java:**
-- `conn` - Conexión a BD
-- `stmt` - Sentencia SQL
-- `pstmt` - Sentencia parametrizada
-- `rs` - Resultados de consulta
-- `sql` - Cadena con sentencia SQL
-- `filasAfectadas` - Número de filas modificadas
+- `conn` — Conexión JDBC
+- `pstmt` — PreparedStatement (consultas parametrizadas)
+- `stmt` — Statement (consultas simples)
+- `rs` — ResultSet (resultados)
+- `sql` — String con la sentencia SQL
+- `filasAfectadas` — int con número de filas modificadas
+- `contador` — int para numerar usuarios en consola
+- `usuarios` — `List<UsuarioResponseDTO>` para métodos JSON
 
 **Principal.java:**
-- `scanner` - Lector de entrada
-- `salir` - Bandera para salir del programa
-- `opcion` - Opción seleccionada por usuario
-- `tpd`, `identificacion`, `dv`, etc. - Datos del usuario
+- `scanner` — `Scanner(System.in)` para leer entrada
+- `dateFormatter` — `DateTimeFormatter.ofPattern("yyyy-MM-dd")`
+- `salir` — boolean para controlar el bucle del menú
+- `opcion` — int con la opción seleccionada
+
+**UsuarioRestController.java:**
+- Sin variables de instancia — todos los métodos usan parámetros
 
 ---
 
-## Tipos de Datos
+## Flujo de Ejecución
 
-| Tipo Java | Tipo SQL | Método JDBC |
-|-----------|----------|------------|
-| `int` | INT | `setInt()` / `getInt()` |
-| `String` | VARCHAR | `setString()` / `getString()` |
-| `boolean` | BOOLEAN | `setBoolean()` / `getBoolean()` |
-| `Date` | DATE | `setDate()` / `getDate()` |
-| `null` | NULL | `setObject()` / `getObject()` |
+### Ejemplo Web: Crear usuario desde el navegador
+
+```
+1. Usuario abre http://localhost:8080
+   ↓
+2. Tomcat sirve index.html
+   ↓
+3. main.js ejecuta loadUsuarios() → GET /api/usuarios
+   ↓
+4. Usuario hace clic en "➕ Nuevo Usuario"
+   ↓
+5. openCreateModal() muestra el formulario
+   ↓
+6. Usuario llena campos y hace clic en "Guardar Usuario"
+   ↓
+7. handleFormSubmit() envía POST /api/usuarios con JSON:
+   {
+     "tpd": 1,
+     "identificacion": "12345678",
+     "primerApellido": "García",
+     "primerNombre": "Juan",
+     ...
+   }
+   ↓
+8. UsuarioRestController.crear() recibe el DTO
+   ↓
+9. Valida campos requeridos (identificacion, primerApellido, primerNombre)
+   ↓
+10. Llama a FundUsuarioDAO.crear(tpd, identificacion, dv, ...)
+   ↓
+11. FundUsuarioDAO:
+    - ConexionJDBC.obtenerConexion() → Connection a MariaDB
+    - Prepara INSERT con 10 placeholders
+    - Convierte LocalDate a java.sql.Date
+    - Ejecuta executeUpdate()
+   ↓
+12. MariaDB inserta la fila
+   ↓
+13. Retorna true → 201 CREATED
+   ↓
+14. main.js recibe respuesta, cierra modal, recarga tabla
+   ↓
+15. Usuario ve el nuevo registro en la tabla
+```
+
+### Ejemplo Consola: Eliminar usuario
+
+```
+1. Usuario ejecuta: ejecutar.bat
+   ↓
+2. Principal.main() inicia el bucle
+   ↓
+3. Muestra menú, usuario elige opción 6
+   ↓
+4. Principal.eliminar():
+    - Pide ID: 1
+    - Pide confirmación: "s"
+   ↓
+5. FundUsuarioDAO.eliminar(1):
+    - ConexionJDBC.obtenerConexion()
+    - Prepara: DELETE FROM fundusuario WHERE USUCONSECUTIVO = ?
+    - pstmt.setInt(1, 1)
+    - executeUpdate() → 1 fila afectada
+   ↓
+6. Retorna true
+   ↓
+7. Imprime: "✓ Usuario eliminado exitosamente"
+   ↓
+8. Vuelve al menú
+```
 
 ---
 
-## Resumen de Operaciones
-
-| Operación | Clase | Método | SQL | Retorna |
-|-----------|-------|--------|-----|---------|
-| **CREATE** | FundUsuarioDAO | `crear()` | INSERT | boolean |
-| **READ (todos)** | FundUsuarioDAO | `obtenerTodos()` | SELECT * | void (imprime) |
-| **READ (ID)** | FundUsuarioDAO | `obtenerPorId()` | SELECT WHERE | void (imprime) |
-| **READ (Cédula)** | FundUsuarioDAO | `obtenerPorIdentificacion()` | SELECT WHERE | void (imprime) |
-| **UPDATE** | FundUsuarioDAO | `actualizar()` | UPDATE | boolean |
-| **DELETE** | FundUsuarioDAO | `eliminar()` | DELETE | boolean |
-
+**Versión:** 2.0.0  
+**Tecnología:** JDBC Puro + Spring Boot 3.4.3 + MariaDB  
+**Java:** 21+  
+**Última actualización:** 2026-05-17

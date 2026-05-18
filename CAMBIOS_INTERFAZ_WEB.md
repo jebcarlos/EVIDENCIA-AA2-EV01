@@ -1,162 +1,215 @@
 # ✅ Implementación: Sistema Visual para CRUD de Usuarios PQRS
 
 **Fecha:** 2026-05-17  
-**Estado:** ✅ Completado
+**Estado:** ✅ Completado y Verificado
 
 ## 📊 Resumen de Cambios
 
-Se ha desarrollado una **interfaz web moderna y responsiva** para reemplazar la interfaz de consola, manteniendo toda la funcionalidad CRUD existente.
+Se ha desarrollado una **interfaz web moderna y responsiva** que complementa la interfaz de consola original. La aplicación web usa Spring Boot + API REST + Frontend vanilla JS, compartiendo la misma capa de datos JDBC.
 
 ---
 
 ## 🎯 Objetivos Alcanzados
 
-✅ Sistema visual web en lugar de consola  
-✅ API REST con endpoints CRUD completos  
+✅ Sistema visual web (Spring Boot + Tomcat en puerto 8080)  
+✅ API REST con 6 endpoints CRUD completos  
 ✅ Interfaz responsiva (desktop, tablet, mobile)  
-✅ Formularios con validación  
-✅ Búsqueda avanzada de usuarios  
-✅ Mensajes visuales de confirmación  
+✅ Formularios modales con validación  
+✅ Búsqueda de usuarios por identificación  
+✅ Mensajes visuales de confirmación/error  
 ✅ Diseño moderno con UX mejorada  
 ✅ Zero dependencias externas en frontend (JavaScript puro)  
+✅ Compilación y ejecución verificadas con Maven 3.9.9 + Java 21  
+✅ Consola original preservada y funcional  
 
 ---
 
-## 📁 Archivos Creados
+## 📁 Archivos Creados (NUEVOS)
 
 ### Backend (Java/Spring Boot)
 
-#### 1. **`src/main/java/com/pqrs/controller/UsuarioRestController.java`** (NUEVO)
-- Controlador REST con endpoints para CRUD
-- Validación de datos de entrada
-- Manejo centralizado de errores
-- Respuestas JSON estructuradas
-- CORS habilitado
+#### 1. `src/main/java/com/pqrs/controller/UsuarioRestController.java`
+- Controlador REST con 6 endpoints para CRUD
+- Validación de datos de entrada (identificacion, primerApellido, primerNombre)
+- Manejo centralizado de errores con ResponseEntity
+- Respuestas JSON estructuradas con ApiResponseDTO
+- CORS habilitado para todos los orígenes
 
 **Endpoints:**
-- `GET /api/usuarios` - Obtener todos
-- `GET /api/usuarios/{id}` - Obtener por ID
-- `GET /api/usuarios/buscar/identificacion/{id}` - Buscar
-- `POST /api/usuarios` - Crear
-- `PUT /api/usuarios/{id}` - Actualizar
-- `DELETE /api/usuarios/{id}` - Eliminar
+| Método | URL | Descripción | Respuesta |
+|--------|-----|-------------|-----------|
+| GET | `/api/usuarios` | Obtener todos | 200 + List\<UsuarioResponseDTO\> |
+| GET | `/api/usuarios/{id}` | Obtener por ID | 200 / 404 |
+| GET | `/api/usuarios/buscar/identificacion/{id}` | Buscar por cédula | 200 / 404 |
+| POST | `/api/usuarios` | Crear usuario | 201 / 400 |
+| PUT | `/api/usuarios/{id}` | Actualizar usuario | 200 / 400 / 404 |
+| DELETE | `/api/usuarios/{id}` | Eliminar usuario | 200 / 404 |
 
-#### 2. **DTOs (Data Transfer Objects)**
+#### 2. DTOs (Data Transfer Objects) — Carpeta `src/main/java/com/pqrs/dto/`
 
-**`src/main/java/com/pqrs/dto/CreateUserDTO.java`** (NUEVO)
-- DTO para crear/actualizar usuarios
-- Mapeo JSON automático con Jackson
+**CreateUserDTO.java** — Recibe datos en POST y PUT
+- 10 campos: tpd, identificacion, dv, primerApellido, segundoApellido, primerNombre, segundoNombre, fechaNacimiento, sexo, tipoSangre
+- Usa `@JsonProperty` para mapeo JSON automático con Jackson
+- Soporta valores nulos en campos opcionales
 
-**`src/main/java/com/pqrs/dto/UsuarioResponseDTO.java`** (NUEVO)
-- DTO para respuestas del servidor
-- Serialización JSON de usuarios
+**UsuarioResponseDTO.java** — Devuelve datos en GET
+- 11 campos (10 de datos + usuConsecutivo)
+- Serialización JSON automática
+- Incluye `LocalDate` para fechas
 
-**`src/main/java/com/pqrs/dto/ApiResponseDTO.java`** (NUEVO)
-- DTO genérico para respuestas API
-- Incluye success, message, data y errors
+**ApiResponseDTO.java** — Envoltorio genérico \<T\>
+- `success`: boolean
+- `message`: String
+- `data`: T (genérico)
+- `errors`: List\<String\>
 
-#### 3. **Actualización: `src/main/java/com/pqrs/dao/FundUsuarioDAO.java`**
-Nuevos métodos JSON añadidos:
-- `obtenerTodosJSON()` - Lista usuarios como JSON
-- `obtenerPorIdJSON(id)` - Obtiene usuario como JSON
-- `obtenerPorIdentificacionJSON(id)` - Busca usuarios como JSON
+#### 3. `PqrsApplication.java` — Entry point Spring Boot
+- `@SpringBootApplication`
+- Inicia Tomcat embebido en puerto 8080
+- Sirve archivos estáticos desde `src/main/resources/static/`
 
-### Frontend (HTML/CSS/JavaScript)
+### Frontend (HTML/CSS/JavaScript) — Carpeta `src/main/resources/static/`
 
-#### 4. **`src/main/resources/static/index.html`** (NUEVO)
-- Página principal de la aplicación
-- Estructura semántica HTML5
-- Componentes:
-  - Header con título
-  - Toolbar con búsqueda
-  - Tabla de usuarios
-  - Modal para crear/editar
-  - Modal para confirmación de eliminación
-  - Contenedor de alertas
+#### 4. `index.html`
+- Página principal con estructura HTML5 semántica
+- Componentes: Header, Toolbar (búsqueda + botón crear), Tabla de usuarios, Modal crear/editar, Modal confirmación eliminación, Contenedor de alertas, Loading spinner
 
-#### 5. **`src/main/resources/static/css/style.css`** (NUEVO)
-- Estilos modernos y responsivos (9.7 KB)
-- Paleta de colores profesional
-- Variables CSS para mantenimiento
-- Gradientes y sombras
-- Animaciones suaves
-- Media queries para dispositivos móviles
-- Componentes:
-  - Tabla con hover effects
-  - Botones con estados
-  - Modales elegantes
-  - Formularios con validación visual
-  - Alertas de éxito/error/warning
-  - Loading spinner
+#### 5. `css/style.css`
+- Diseño responsivo con media queries
+- Variables CSS para paleta de colores
+- Gradientes (púrpura/azul), sombras, animaciones de 0.3s
+- Tabla con hover effects, botones interactivos, modales elegantes
+- Alertas codificadas por color (success, error, warning, info)
 
-#### 6. **`src/main/resources/static/js/main.js`** (NUEVO)
-- Lógica de la aplicación (11.3 KB)
-- Funciones principales:
-  - `loadUsuarios()` - Carga desde API
-  - `searchByIdentificacion()` - Búsqueda
-  - `createUsuario()` - Crear usuario
-  - `updateUsuario()` - Editar usuario
-  - `deleteUsuario()` - Eliminar usuario
-  - `renderTable()` - Renderizar tabla
-  - Gestión de modales
-  - Validación de formularios
-  - Notificaciones visuales
-- Usa Fetch API (no dependencias externas)
-- AJAX para comunicación servidor-cliente
+#### 6. `js/main.js`
+- JavaScript vainilla (ES6), sin jQuery ni frameworks
+- Funciones: loadUsuarios(), renderTable(), searchByIdentificacion(), openCreateModal(), openEditModal(), deleteUsuario(), handleFormSubmit(), showAlert()
+- Fetch API para comunicación con el backend
+- Gestión de modales y validación de formularios
 
-### Archivos de Documentación
+### Scripts
 
-#### 7. **`INTERFAZ_WEB.md`** (NUEVO)
-- Guía completa de uso
-- Instrucciones de instalación
-- Características
-- Endpoints API
-- Troubleshooting
-- Estructura del proyecto
+#### 7. `ejecutar-web.bat`
+- Script para compilar y ejecutar la aplicación web
+- Usa Maven para compilación y spring-boot:run
 
-#### 8. **`ejecutar-web.bat`** (NUEVO)
-- Script para ejecutar la aplicación web
-- Compila con Maven
-- Inicia Spring Boot
-- Fácil acceso a la interfaz
+### Documentación
+
+#### 8. `INTERFAZ_WEB.md` — Guía completa de uso web
+#### 9. `INICIO_RAPIDO.md` — Quick start en 3 pasos
+#### 10. `INDICE.md` — Índice de toda la documentación
+#### 11. `PROYECTO_COMPLETADO.txt` — Resumen visual del proyecto
 
 ---
 
-## 🏗️ Arquitectura
+## 🗑️ Archivos Eliminados (limpieza)
+
+Estos archivos JPA antiguos fueron eliminados porque no se usan (la aplicación usa JDBC puro, no JPA/Hibernate):
+
+| Archivo eliminado | Motivo |
+|-------------------|--------|
+| `entity/FundUsuario.java` | Usaba `javax.persistence.*` (JPA), no usado por la app web |
+| `controller/FundUsuarioController.java` | Controlador JPA antiguo con endpoints `/api/fundusuario` |
+| `service/FundUsuarioService.java` | Servicio JPA con métodos no compatibles |
+| `repository/FundUsuarioRepository.java` | Interfaz JPA Repository no usada |
+
+---
+
+## 📝 Cambios en Archivos Existentes
+
+### `pom.xml` — Corregido y actualizado
+- **Spring Boot:** 4.0.6 (versión inexistente) → **3.4.3** (estable)
+- **Java:** 25 → **21** (compatible con Spring Boot 3.4.3)
+- Se agregó versión explícita de Lombok: **1.18.34**
+
+### `FundUsuarioDAO.java` — Extendido con métodos JSON
+Nuevos imports:
+```java
+import com.pqrs.dto.UsuarioResponseDTO;
+import java.util.ArrayList;
+import java.util.List;
+```
+
+Nuevos métodos:
+```java
+public static List<UsuarioResponseDTO> obtenerTodosJSON()
+public static UsuarioResponseDTO obtenerPorIdJSON(int id)
+public static List<UsuarioResponseDTO> obtenerPorIdentificacionJSON(String id)
+```
+- Los métodos originales de consola se mantienen sin cambios
+- Los métodos JSON convierten `ResultSet` → `UsuarioResponseDTO`
+- Conversión de fechas: `rs.getDate("FECHANACIMIENTO").toLocalDate()`
+
+### `DOCUMENTACION_COMPLETA.md` — Actualizado completamente
+- Documentadas todas las clases actuales (PqrsApplication, UsuarioRestController, DTOs, FundUsuarioDAO, ConexionJDBC, Principal)
+- Firmas de métodos actualizadas con sus 10-11 parámetros reales
+- Sentencias SQL reales usadas
+- Librerías Spring Boot, Jackson, Java estándar
+- Flujos de ejecución web y consola
+
+### `ESTRUCTURA_PROYECTO.md` — Actualizado
+- Refleja la estructura real sin archivos JPA eliminados
+
+### `README.md` — Actualizado
+- Información de las dos interfaces disponibles
+- Instrucciones para ejecutar cada una
+
+---
+
+## 🏗️ Arquitectura Actual
 
 ```
-┌─────────────────────────────────────────────┐
-│          Frontend (HTML/CSS/JS)             │
-│     • index.html (7.8 KB)                   │
-│     • style.css (9.7 KB)                    │
-│     • main.js (11.3 KB)                     │
-└────────────────────┬────────────────────────┘
-                     │
-           FETCH API (AJAX)
+┌──────────────────────────────────────────────────────────┐
+│          FRONTEND WEB (HTML/CSS/JS)                      │
+│  src/main/resources/static/                             │
+│  • index.html (177 líneas)                              │
+│  • css/style.css                                        │
+│  • js/main.js                                           │
+└────────────────────┬─────────────────────────────────────┘
+                     │ FETCH API (AJAX)
+                     ▼
+┌──────────────────────────────────────────────────────────┐
+│          BACKEND (Spring Boot 3.4.3)                     │
+│  UsuarioRestController.java                             │
+│  • @RestController + @CrossOrigin                       │
+│  • 6 Endpoints REST                                     │
+│  • Validaciones + ApiResponseDTO                        │
+└────────────────────┬─────────────────────────────────────┘
                      │
                      ▼
-┌─────────────────────────────────────────────┐
-│         Backend (Spring Boot)                │
-│  UsuarioRestController.java                 │
-│     • @RestController                       │
-│     • @CrossOrigin                          │
-│     • 6 Endpoints REST                      │
-└────────────────────┬────────────────────────┘
-                     │
-           JDBC + Prepared Statements
+┌──────────────────────────────────────────────────────────┐
+│          DTOs                                            │
+│  CreateUserDTO, UsuarioResponseDTO, ApiResponseDTO      │
+└────────────────────┬─────────────────────────────────────┘
                      │
                      ▼
-┌─────────────────────────────────────────────┐
-│    Database Layer (FundUsuarioDAO)          │
-│     • CREATE (insert)                       │
-│     • READ (select)                         │
-│     • UPDATE (update)                       │
-│     • DELETE (delete)                       │
-└────────────────────┬────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│          CAPA DE DATOS (JDBC Puro)                       │
+│  FundUsuarioDAO.java                                    │
+│  • CRUD estándar (consola)                              │
+│  • Métodos JSON (API REST)                              │
+│  • PreparedStatements (anti-SQL injection)              │
+└────────────────────┬─────────────────────────────────────┘
                      │
                      ▼
-              MariaDB/MySQL
-            (tabla: fundusuario)
+┌──────────────────────────────────────────────────────────┐
+│          CONEXIÓN                                        │
+│  ConexionJDBC.java                                      │
+│  • DriverManager.getConnection()                        │
+│  • URL: jdbc:mariadb://localhost:3306/bdpqrsej          │
+└────────────────────┬─────────────────────────────────────┘
+                     │
+                     ▼
+              ┌──────────────┐
+              │   MariaDB    │
+              │  bdpqrsej    │
+              │ fundusuario  │
+              └──────────────┘
+```
+
+**También disponible (consola):**
+```
+Principal.java → FundUsuarioDAO.java → ConexionJDBC.java → MariaDB
 ```
 
 ---
@@ -164,116 +217,85 @@ Nuevos métodos JSON añadidos:
 ## 🎨 Características de Diseño
 
 ### UI/UX
-- **Gradientes modernos**: Fondo púrpura profesional
-- **Animaciones suaves**: Transiciones de 0.3s
-- **Feedback visual**: Hover effects, loading spinner
-- **Modales elegantes**: Con overlay semi-transparente
-- **Responsive**: Funciona en cualquier dispositivo
-- **Accesibilidad**: Etiquetas, ALT text, contraste
+- **Gradientes modernos**: Fondo púrpura/azul profesional
+- **Animaciones suaves**: Transiciones de 0.3s en hover y modales
+- **Feedback visual**: Loading spinner, alerts animadas, hover effects
+- **Modales elegantes**: Overlay semi-transparente, formularios organizados
+- **Responsive**: Funciona en desktop, tablet y mobile
+- **Accesibilidad**: Labels, placeholders, contraste adecuado
 
-### Componentes
-1. **Header**: Logo y subtítulo
-2. **Toolbar**: Búsqueda y botón crear
-3. **Tabla**: Datos con acciones (editar/eliminar)
-4. **Modales**: Formularios en ventanas flotantes
-5. **Alertas**: Notificaciones de éxito/error
-6. **Loading**: Spinner durante operaciones
-
----
-
-## 📝 Cambios en Archivos Existentes
-
-### `src/main/java/com/pqrs/dao/FundUsuarioDAO.java`
-**Cambios:**
-- ✏️ Agregados imports para DTOs y colecciones
-- ✏️ Nuevos métodos públicos JSON:
-  ```java
-  public static List<UsuarioResponseDTO> obtenerTodosJSON()
-  public static UsuarioResponseDTO obtenerPorIdJSON(int id)
-  public static List<UsuarioResponseDTO> obtenerPorIdentificacionJSON(String id)
-  ```
-- ℹ️ Métodos originales sin cambios (mantiene compatibilidad)
-
----
-
-## 🚀 Cómo Usar
-
-### 1. Instalación
-```bash
-# Asegurar que Maven está instalado
-mvn -v
-
-# O usar el script
-ejecutar-web.bat
-```
-
-### 2. Acceso
-- URL: `http://localhost:8080`
-- Puerto: 8080 (configurable en application.properties)
-
-### 3. Operaciones
-- **Listar**: Carga automática al abrir la página
-- **Crear**: ➕ Nuevo Usuario → Llenar formulario → Guardar
-- **Editar**: ✏️ Editar → Modificar → Guardar
-- **Eliminar**: 🗑️ Eliminar → Confirmar → Listo
-- **Buscar**: Ingresar ID → 🔍 Buscar
+### Componentes UI
+1. **Header**: Título "Gestión de Usuarios PQRS" con subtítulo
+2. **Toolbar**: Campo de búsqueda + botones (🔍 Buscar, 🔄 Resetear, ➕ Nuevo Usuario)
+3. **Tabla**: Columnas ID, Documento, Identificación, Nombre Completo, Acciones
+4. **Modal Crear/Editar**: Formulario con 10 campos en 4 filas
+5. **Modal Confirmación**: Diálogo de confirmación para eliminación
+6. **Alertas**: Notificaciones success/error/warning/info
 
 ---
 
 ## ✨ Validaciones Implementadas
 
-### Frontend
-- Campo requerido: Documento, Identificación, Apellido, Nombre
-- Formato de fecha: yyyy-MM-dd
-- Validación en tiempo real con mensajes
+### Frontend (main.js)
+- Campos requeridos: tpd, identificacion, primerApellido, primerNombre
+- Formato de fecha: input type="date"
+- Validación HTML5 nativa con atributo `required`
 
-### Backend
-- Verificación de campos obligatorios
-- Respuestas HTTP apropiadas (200, 201, 400, 404, 500)
-- Mensajes de error descriptivos
+### Backend (UsuarioRestController.java)
+- `identificacion` no puede ser null o vacía
+- `primerApellido` no puede ser null o vacío
+- `primerNombre` no puede ser null o vacío
+- Respuestas HTTP apropiadas: 200, 201, 400, 404, 500
+- Mensajes de error descriptivos en español
 
 ---
 
-## 📊 Estadísticas
+## 📊 Estadísticas del Proyecto
 
 | Aspecto | Valor |
 |---------|-------|
-| Archivos creados | 8 |
-| Líneas de código | ~1,500 |
-| Endpoints REST | 6 |
+| Archivos totales en src/ | 13 |
+| Clases Java | 8 |
 | DTOs | 3 |
-| Componentes UI | 8 |
-| Tamaño Frontend | ~28 KB |
-| Compatibilidad | HTML5, CSS3, ES6 |
-| Dependencias externas (Frontend) | 0 |
+| Archivos frontend | 3 (HTML + CSS + JS) |
+| Endpoints REST | 6 |
+| Métodos en FundUsuarioDAO | 9 (6 CRUD + 3 JSON) |
+| Líneas de código Java | ~1,100 |
+| Líneas de código Frontend | ~800 |
+| Dependencias externas Frontend | 0 |
+| Dependencias Maven | 6 |
 
 ---
 
 ## 🔒 Consideraciones de Seguridad
 
 ✅ Input validation en frontend y backend  
-✅ SQL Injection prevention (PreparedStatements)  
-✅ CORS habilitado (configurar para producción)  
-✅ Validación de tipos  
+✅ SQL Injection prevention (PreparedStatements 100%)  
+✅ CORS habilitado (`@CrossOrigin(origins = "*")`)  
+✅ Validación de tipos de datos  
+✅ Manejo de valores nulos  
+⚠️ Credenciales hardcodeadas en ConexionJDBC.java y application.properties  
 ⚠️ TODO: Autenticación y autorización para producción  
 ⚠️ TODO: HTTPS para datos sensibles  
 ⚠️ TODO: Rate limiting  
 
 ---
 
-## 🧪 Pruebas Manuales
+## 🧪 Verificación de Compilación
 
-Verificar los siguientes escenarios:
-
+```bash
+# Maven 3.9.9 + Java 21
+E:\maven\apache-maven-3.9.9\bin\mvn clean compile -DskipTests
+# RESULTADO: BUILD SUCCESS (9 source files compiled)
 ```
-✅ Crear usuario con datos válidos
-✅ Crear usuario sin datos requeridos (error esperado)
-✅ Editar usuario existente
-✅ Buscar usuario por identificación
-✅ Eliminar usuario con confirmación
-✅ Ver tabla actualizada en tiempo real
-✅ Respuestas del servidor (network tab)
-✅ Funciona en móvil (responsive)
+
+## 🧪 Verificación de Ejecución
+
+```bash
+E:\maven\apache-maven-3.9.9\bin\mvn spring-boot:run
+# RESULTADO: Started PqrsApplication in 6.302 seconds
+# Tomcat started on port 8080 (http)
+# MariaDB connection: HikariPool-1 - Start completed
 ```
 
 ---
@@ -282,86 +304,85 @@ Verificar los siguientes escenarios:
 
 ```
 PQRS-JAVA/
-├── src/
-│   ├── main/
-│   │   ├── java/com/pqrs/
-│   │   │   ├── controller/
-│   │   │   │   ├── FundUsuarioController.java (anterior)
-│   │   │   │   └── UsuarioRestController.java ⭐ NUEVO
-│   │   │   ├── dao/
-│   │   │   │   └── FundUsuarioDAO.java (actualizado)
-│   │   │   ├── dto/ ⭐ NUEVA CARPETA
-│   │   │   │   ├── CreateUserDTO.java
-│   │   │   │   ├── UsuarioResponseDTO.java
-│   │   │   │   └── ApiResponseDTO.java
-│   │   │   ├── entity/
-│   │   │   ├── util/
-│   │   │   └── PqrsApplication.java
-│   │   └── resources/
-│   │       ├── static/ ⭐ NUEVA CARPETA
-│   │       │   ├── index.html
-│   │       │   ├── css/
-│   │       │   │   └── style.css
-│   │       │   └── js/
-│   │       │       └── main.js
-│   │       └── application.properties (sin cambios)
-│   └── test/
+├── src/main/java/com/pqrs/
+│   ├── PqrsApplication.java              ← Entry point Spring Boot
+│   ├── Principal.java                    ← Consola (menú interactivo)
+│   ├── controller/
+│   │   └── UsuarioRestController.java    ← API REST (6 endpoints)
+│   ├── dao/
+│   │   └── FundUsuarioDAO.java           ← CRUD JDBC + JSON
+│   ├── dto/
+│   │   ├── CreateUserDTO.java            ← Request DTO
+│   │   ├── UsuarioResponseDTO.java       ← Response DTO
+│   │   └── ApiResponseDTO.java           ← Envoltorio genérico
+│   └── util/
+│       ├── ConexionJDBC.java             ← Conexión MariaDB
+│       └── TestConexion.java             ← Test de conexión
+├── src/main/resources/
+│   ├── static/
+│   │   ├── index.html                    ← Página web principal
+│   │   ├── css/style.css                 ← Estilos
+│   │   └── js/main.js                    ← Lógica frontend
+│   └── application.properties            ← Config Spring Boot
 ├── lib/
-├── target/
-├── pom.xml (sin cambios)
-├── ejecutar.bat (original)
-├── ejecutar-web.bat ⭐ NUEVO
-├── INTERFAZ_WEB.md ⭐ NUEVO
-└── README.md (actualizar)
+│   └── mariadb-java-client-3.0.8.jar     ← Driver JDBC local
+├── bdpqrsej_backup.sql                   ← Backup de la BD
+├── pom.xml                               ← Maven (Spring Boot 3.4.3)
+├── ejecutar.bat                          ← Ejecutar consola
+├── ejecutar-web.bat                      ← Ejecutar web
+├── ejecutar.ps1                          ← Ejecutar PowerShell
+└── docs/
+    ├── README.md
+    ├── DOCUMENTACION_COMPLETA.md
+    ├── ESTRUCTURA_PROYECTO.md
+    ├── INTERFAZ_WEB.md
+    ├── INICIO_RAPIDO.md
+    ├── INDICE.md
+    ├── CAMBIOS_INTERFAZ_WEB.md
+    └── PROYECTO_COMPLETADO.txt
 ```
 
 ---
 
-## 🎓 Lecciones Aprendidas
+## 🚀 Cómo Ejecutar
 
-1. **Separación de capas**: DTO para REST, DAO para DB
-2. **Responsive design**: Mobile-first con media queries
-3. **Fetch API**: Sin JQuery, JavaScript moderno
-4. **Spring Boot**: Configuración mínima, máximo rendimiento
-5. **UX/UI**: Animaciones y feedback mejoran experiencia
+### Interfaz Web
+```bash
+cd e:\SENA\PQRS\PQRS-JAVA
+E:\maven\apache-maven-3.9.9\bin\mvn spring-boot:run
+# Abrir: http://localhost:8080
+```
+
+### Consola
+```bash
+cd e:\SENA\PQRS\PQRS-JAVA
+ejecutar.bat
+```
+
+---
+
+## 🎓 Tecnologías Utilizadas
+
+| Capa | Tecnología |
+|------|-----------|
+| Backend | Java 21, Spring Boot 3.4.3, Spring Web (MVC) |
+| Base de datos | MariaDB 12.1, JDBC, HikariCP |
+| Frontend | HTML5, CSS3, JavaScript ES6, Fetch API |
+| Build | Maven 3.9.9 |
+| Servidor | Apache Tomcat 10.1 (embebido) |
+| JSON | Jackson (incluido en Spring Boot) |
+| Driver BD | MariaDB Java Client 3.0.8 |
 
 ---
 
 ## 🚀 Próximos Pasos Recomendados
 
-1. **Seguridad**
-   - Implementar autenticación
-   - Agregar JWT tokens
-   - Validar roles y permisos
-
-2. **Funcionalidad**
-   - Paginación
-   - Ordenamiento
-   - Filtros avanzados
-   - Exportar datos
-
-3. **Performance**
-   - Caché
-   - Índices DB
-   - Lazy loading
-
-4. **Testing**
-   - Tests unitarios
-   - Tests de integración
-   - Tests E2E
+1. **Seguridad**: Autenticación JWT, roles, HTTPS
+2. **Funcionalidad**: Paginación, ordenamiento, filtros avanzados, exportación
+3. **Performance**: Caché, índices DB, lazy loading
+4. **Testing**: Tests unitarios (JUnit), tests de integración, tests E2E
+5. **DevOps**: Docker, variables de entorno para credenciales
 
 ---
 
-## 📞 Contacto / Soporte
-
-Si encontras problemas:
-1. Revisa `INTERFAZ_WEB.md` - Troubleshooting
-2. Verifica logs de Spring Boot
-3. Abre consola del navegador (F12)
-4. Consulta documentación oficial
-
----
-
-**✅ Proyecto Completado exitosamente**
-
-La interfaz web está lista para usar. Ejecuta `ejecutar-web.bat` para iniciar.
+**✅ Proyecto completado, compilado y verificado — 2026-05-17**
