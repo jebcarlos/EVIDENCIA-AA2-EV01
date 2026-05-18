@@ -1,41 +1,273 @@
-# DOCUMENTACIÓN COMPLETA - CRUD FUNDUSUARIO CON JDBC
+# DOCUMENTACIÓN COMPLETA - CRUD FUNDUSUARIO (JDBC + Spring Boot Web)
 
 ## Tabla de Contenidos
 1. [Arquitectura General](#arquitectura-general)
-2. [Clase ConexionJDBC](#clase-conexionjdbc)
-3. [Clase FundUsuarioDAO](#clase-fundusuariodao)
-4. [Clase Principal](#clase-principal)
-5. [Sentencias SQL](#sentencias-sql)
-6. [Flujo de Ejecución](#flujo-de-ejecución)
-7. [Variables y Librerías](#variables-y-librerías)
+2. [Dos Interfaces Disponibles](#dos-interfaces-disponibles)
+3. [Interfaz Web (Spring Boot)](#interfaz-web-spring-boot)
+4. [Interfaz Consola (JDBC Puro)](#interfaz-consola-jdbc-puro)
+5. [Clase ConexionJDBC](#clase-conexionjdbc)
+6. [Clase FundUsuarioDAO](#clase-fundusuariodao)
+7. [Clase Principal](#clase-principal)
+8. [Sentencias SQL](#sentencias-sql)
+9. [Flujo de Ejecución](#flujo-de-ejecución)
+10. [Variables y Librerías](#variables-y-librerías)
 
 ---
 
 ## Arquitectura General
 
+### OPCIÓN 1: Interfaz Web (Spring Boot) - RECOMENDADA
 ```
 ESTRUCTURA DEL PROYECTO:
-┌─────────────────────────────────────────────────────────────┐
-│                      Principal.java                         │
-│              (PROGRAMA PRINCIPAL - MENÚ)                   │
-│                    ↓                                        │
-├──────────────────────────────────────────────────────────────┤
-│                    FundUsuarioDAO.java                      │
-│         (MÉTODOS CRUD - OPERACIONES DE BD)                │
-│                    ↓                                        │
-├──────────────────────────────────────────────────────────────┤
-│                    ConexionJDBC.java                        │
-│     (GESTIÓN DE CONEXIONES A MARIADB)                     │
-│                    ↓                                        │
-├──────────────────────────────────────────────────────────────┤
-│                      MARIADB                                │
-│            (BASE DE DATOS BDPQRSEJ)                       │
-│              TABLA: FUNDUSUARIO                            │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│         NAVEGADOR WEB (http://localhost:8080)              │
+│    (HTML/CSS/JavaScript - SIN dependencias externas)       │
+└───────────────────────┬──────────────────────────────────────┘
+                        │ FETCH API (AJAX)
+                        ↓
+┌──────────────────────────────────────────────────────────────┐
+│           UsuarioRestController.java                        │
+│          (6 ENDPOINTS REST - Spring Web)                   │
+│  GET, POST, PUT, DELETE con Validación                     │
+└───────────────────────┬──────────────────────────────────────┘
+                        │
+        ┌───────────────┼───────────────┐
+        ↓               ↓               ↓
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ CreateUserDTO│ │ Response DTO │ │ ApiResponseDTO│
+│  (Request)   │ │  (Response)  │ │  (Envelope)  │
+└──────────────┘ └──────────────┘ └──────────────┘
+        │               │               │
+        └───────────────┼───────────────┘
+                        ↓
+        ┌──────────────────────────────┐
+        │  FundUsuarioDAO.java         │
+        │  (CRUD + Métodos JSON)       │
+        │  - crear()                   │
+        │  - obtenerTodosJSON()        │
+        │  - obtenerPorIdJSON()        │
+        │  - obtenerPorIdentificacionJSON()
+        │  - actualizar()              │
+        │  - eliminar()                │
+        └───────────────┬──────────────┘
+                        ↓
+        ┌──────────────────────────────┐
+        │    ConexionJDBC.java         │
+        │  (JDBC - Gestión Conexiones) │
+        └───────────────┬──────────────┘
+                        ↓
+        ┌──────────────────────────────┐
+        │    MARIADB (bdpqrsej)        │
+        │  Tabla: FUNDUSUARIO          │
+        └──────────────────────────────┘
 ```
 
-**Flujo:**
+**Flujo Web:**
+Navegador → Fetch API → UsuarioRestController → DTOs → FundUsuarioDAO → ConexionJDBC → MariaDB
+
+### OPCIÓN 2: Interfaz Consola (JDBC Puro) - Original
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Principal.java                         │
+│              (PROGRAMA PRINCIPAL - MENÚ)                   │
+└───────────────────────┬──────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────────────┐
+│                    FundUsuarioDAO.java                      │
+│         (MÉTODOS CRUD - OPERACIONES DE BD)                │
+└───────────────────────┬──────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────────────┐
+│                    ConexionJDBC.java                        │
+│     (GESTIÓN DE CONEXIONES A MARIADB)                     │
+└───────────────────────┬──────────────────────────────────────┘
+                        ↓
+        ┌──────────────────────────────┐
+        │    MARIADB (bdpqrsej)        │
+        │  Tabla: FUNDUSUARIO          │
+        └──────────────────────────────┘
+```
+
+**Flujo Consola:**
 Principal → FundUsuarioDAO → ConexionJDBC → MariaDB
+
+---
+
+## Dos Interfaces Disponibles
+
+### 🌐 Interfaz Web (NUEVA - RECOMENDADA)
+- **Tecnología:** Spring Boot + HTML5 + CSS3 + JavaScript ES6
+- **Acceso:** `http://localhost:8080`
+- **Ejecución:** `ejecutar-web.bat`
+- **Características:** Moderno, responsivo, intuitivo, sin dependencias externas en frontend
+- **Endpoints:** 6 REST endpoints (GET, POST, PUT, DELETE)
+
+### 🖥️ Interfaz Consola (ORIGINAL)
+- **Tecnología:** JDBC puro + menú interactivo
+- **Acceso:** Terminal/Consola
+- **Ejecución:** `ejecutar.bat`
+- **Características:** Ligero, rápido, bajo consumo, sin frameworks
+
+---
+
+## Interfaz Web (Spring Boot)
+
+### UsuarioRestController.java
+**Ubicación:** `src/main/java/com/pqrs/controller/UsuarioRestController.java`
+
+#### Propósito
+Exponer endpoints REST para operaciones CRUD con validación y respuestas JSON.
+
+#### Endpoints
+
+```java
+@RestController
+@RequestMapping("/api/usuarios")
+@CrossOrigin(origins = "*")
+public class UsuarioRestController {
+    
+    // GET /api/usuarios
+    @GetMapping
+    public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerTodos()
+    
+    // GET /api/usuarios/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponseDTO<UsuarioResponseDTO>> obtenerPorId(@PathVariable int id)
+    
+    // GET /api/usuarios/buscar/identificacion/{id}
+    @GetMapping("/buscar/identificacion/{identificacion}")
+    public ResponseEntity<ApiResponseDTO<List<UsuarioResponseDTO>>> obtenerPorIdentificacion()
+    
+    // POST /api/usuarios
+    @PostMapping
+    public ResponseEntity<ApiResponseDTO<String>> crear(@RequestBody CreateUserDTO dto)
+    
+    // PUT /api/usuarios/{id}
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponseDTO<String>> actualizar(@PathVariable int id, @RequestBody CreateUserDTO dto)
+    
+    // DELETE /api/usuarios/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponseDTO<String>> eliminar(@PathVariable int id)
+}
+```
+
+#### Validaciones
+- TPD requerido
+- Identificación no vacía
+- Apellido no vacío
+- Nombre no vacío
+- Dígito verificación (opcional)
+- Fecha de nacimiento formato yyyy-MM-dd
+
+#### Respuestas
+```json
+// Éxito (200)
+{
+  "success": true,
+  "message": "Usuarios obtenidos correctamente",
+  "data": [ ... ]
+}
+
+// Error (400/404/500)
+{
+  "success": false,
+  "message": "Error al obtener usuarios"
+}
+```
+
+### DTOs (Data Transfer Objects)
+
+#### CreateUserDTO
+**Ubicación:** `src/main/java/com/pqrs/dto/CreateUserDTO.java`
+
+Usado para solicitudes de creación/actualización:
+```java
+- tpd: int
+- identificacion: String
+- dv: Integer (nullable)
+- primerApellido: String
+- segundoApellido: String (nullable)
+- primerNombre: String
+- segundoNombre: String (nullable)
+- fechaNacimiento: LocalDate (nullable)
+- sexo: String (nullable)
+- tipoSangre: Integer (nullable)
+```
+
+#### UsuarioResponseDTO
+**Ubicación:** `src/main/java/com/pqrs/dto/UsuarioResponseDTO.java`
+
+Usado para respuestas de lectura:
+```java
+- usuConsecutivo: int
+- tpd: int
+- identificacion: String
+- dv: Integer (nullable)
+- primerApellido: String
+- segundoApellido: String (nullable)
+- primerNombre: String
+- segundoNombre: String (nullable)
+- fechaNacimiento: LocalDate (nullable)
+- sexo: String (nullable)
+- tipoSangre: Integer (nullable)
+```
+
+#### ApiResponseDTO<T>
+**Ubicación:** `src/main/java/com/pqrs/dto/ApiResponseDTO.java`
+
+Envoltorio genérico para todas las respuestas:
+```java
+- success: boolean
+- message: String
+- data: T (genérico)
+- errors: List<String> (nullable)
+```
+
+### Frontend
+
+#### index.html
+**Ubicación:** `src/main/resources/static/index.html`
+
+Componentes principales:
+- Header con título
+- Toolbar con búsqueda y botón crear
+- Tabla de usuarios (responsive)
+- Modal para crear/editar
+- Modal para confirmación de eliminación
+- Contenedor de alertas
+
+#### style.css
+**Ubicación:** `src/main/resources/static/css/style.css`
+
+Características:
+- Diseño responsivo con media queries
+- Gradientes modernos (púrpura/azul)
+- Animaciones suaves (0.3s)
+- Tabla con hover effects
+- Modales elegantes
+- Botones interactivos
+- Alertas visuales (éxito, error, warning, info)
+- Mobile-first approach
+
+#### main.js
+**Ubicación:** `src/main/resources/static/js/main.js`
+
+Funciones principales:
+- `loadUsuarios()` - Carga desde API
+- `renderTable(usuarios)` - Renderiza tabla
+- `searchByIdentificacion()` - Búsqueda
+- `openCreateModal()` - Modal crear
+- `editUsuario(id)` - Modal editar
+- `deleteUsuario(id)` - Eliminación
+- `handleFormSubmit(e)` - Envío de formulario
+- `showAlert(message, type)` - Notificaciones
+
+Usa Fetch API (sin jQuery ni dependencias externas).
+
+---
+
+## Interfaz Consola (JDBC Puro)
 
 ---
 

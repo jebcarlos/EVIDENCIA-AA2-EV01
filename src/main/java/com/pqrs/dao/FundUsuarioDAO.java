@@ -1,8 +1,11 @@
 package com.pqrs.dao;
 
 import com.pqrs.util.ConexionJDBC;
+import com.pqrs.dto.UsuarioResponseDTO;
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FundUsuarioDAO {
 
@@ -207,5 +210,100 @@ public class FundUsuarioDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    // ========== MÉTODOS JSON PARA API REST ==========
+    
+    // GET All - JSON
+    public static List<UsuarioResponseDTO> obtenerTodosJSON() {
+        List<UsuarioResponseDTO> usuarios = new ArrayList<>();
+        String sql = "SELECT USUCONSECUTIVO, TPD, IDENTIFICACION, DV, PRIMERAPELLIDO, SEGUNDOAPELLIDO, " +
+                     "PRIMERNOMBRE, SEGUNDONOMBRE, FECHANACIMIENTO, SEXO, TIPOSANGRE FROM fundusuario";
+        try (Connection conn = ConexionJDBC.obtenerConexion();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                UsuarioResponseDTO usuario = new UsuarioResponseDTO(
+                    rs.getInt("USUCONSECUTIVO"),
+                    rs.getInt("TPD"),
+                    rs.getString("IDENTIFICACION"),
+                    (Integer) rs.getObject("DV"),
+                    rs.getString("PRIMERAPELLIDO"),
+                    rs.getString("SEGUNDOAPELLIDO"),
+                    rs.getString("PRIMERNOMBRE"),
+                    rs.getString("SEGUNDONOMBRE"),
+                    rs.getDate("FECHANACIMIENTO") != null ? rs.getDate("FECHANACIMIENTO").toLocalDate() : null,
+                    rs.getString("SEXO"),
+                    (Integer) rs.getObject("TIPOSANGRE")
+                );
+                usuarios.add(usuario);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return usuarios;
+    }
+    
+    // GET By ID - JSON
+    public static UsuarioResponseDTO obtenerPorIdJSON(int usuConsecutivo) {
+        String sql = "SELECT * FROM fundusuario WHERE USUCONSECUTIVO = ?";
+        try (Connection conn = ConexionJDBC.obtenerConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, usuConsecutivo);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return new UsuarioResponseDTO(
+                    rs.getInt("USUCONSECUTIVO"),
+                    rs.getInt("TPD"),
+                    rs.getString("IDENTIFICACION"),
+                    (Integer) rs.getObject("DV"),
+                    rs.getString("PRIMERAPELLIDO"),
+                    rs.getString("SEGUNDOAPELLIDO"),
+                    rs.getString("PRIMERNOMBRE"),
+                    rs.getString("SEGUNDONOMBRE"),
+                    rs.getDate("FECHANACIMIENTO") != null ? rs.getDate("FECHANACIMIENTO").toLocalDate() : null,
+                    rs.getString("SEXO"),
+                    (Integer) rs.getObject("TIPOSANGRE")
+                );
+            }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    // GET By Identificacion - JSON
+    public static List<UsuarioResponseDTO> obtenerPorIdentificacionJSON(String identificacion) {
+        List<UsuarioResponseDTO> usuarios = new ArrayList<>();
+        String sql = "SELECT * FROM fundusuario WHERE IDENTIFICACION = ?";
+        try (Connection conn = ConexionJDBC.obtenerConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, identificacion);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                UsuarioResponseDTO usuario = new UsuarioResponseDTO(
+                    rs.getInt("USUCONSECUTIVO"),
+                    rs.getInt("TPD"),
+                    rs.getString("IDENTIFICACION"),
+                    (Integer) rs.getObject("DV"),
+                    rs.getString("PRIMERAPELLIDO"),
+                    rs.getString("SEGUNDOAPELLIDO"),
+                    rs.getString("PRIMERNOMBRE"),
+                    rs.getString("SEGUNDONOMBRE"),
+                    rs.getDate("FECHANACIMIENTO") != null ? rs.getDate("FECHANACIMIENTO").toLocalDate() : null,
+                    rs.getString("SEXO"),
+                    (Integer) rs.getObject("TIPOSANGRE")
+                );
+                usuarios.add(usuario);
+            }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return usuarios;
     }
 }

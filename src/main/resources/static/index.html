@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Usuarios - PQRS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📋 Gestión de Usuarios PQRS</h1>
+                <p class="subtitle">Sistema de administración de usuarios</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="search-group">
+                    <input type="text" id="searchInput" placeholder="Buscar por identificación..." class="search-input">
+                    <button id="searchBtn" class="btn btn-search">🔍 Buscar</button>
+                    <button id="resetBtn" class="btn btn-secondary">🔄 Resetear</button>
+                </div>
+                <button id="createBtn" class="btn btn-primary">➕ Nuevo Usuario</button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Cargando...</p>
+            </div>
+
+            <!-- Alert Messages -->
+            <div id="alertContainer" class="alert-container"></div>
+
+            <!-- Table Container -->
+            <div class="table-container">
+                <table id="usuariosTable" class="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Documento</th>
+                            <th>Identificación</th>
+                            <th>Nombre Completo</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr class="empty-row">
+                            <td colspan="6">No hay usuarios. Crea uno nuevo para comenzar.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Crear/Editar Usuario -->
+    <div id="userModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Crear Nuevo Usuario</h2>
+                <button class="modal-close" data-close="true">&times;</button>
+            </div>
+            <form id="userForm" class="form">
+                <input type="hidden" id="userId">
+                
+                <!-- Fila 1 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tpd">Tipo Documento (TPD) *</label>
+                        <select id="tpd" required>
+                            <option value="">Selecciona...</option>
+                            <option value="1">CC - Cédula de Ciudadanía</option>
+                            <option value="2">CE - Cédula de Extranjería</option>
+                            <option value="3">PAS - Pasaporte</option>
+                            <option value="4">NIT - NIT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="identificacion">Identificación *</label>
+                        <input type="text" id="identificacion" placeholder="Ej: 1234567890" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dv">Dígito Verificación</label>
+                        <input type="number" id="dv" placeholder="Opcional">
+                    </div>
+                </div>
+
+                <!-- Fila 2 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="primerApellido">Primer Apellido *</label>
+                        <input type="text" id="primerApellido" placeholder="Ej: García" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="segundoApellido">Segundo Apellido</label>
+                        <input type="text" id="segundoApellido" placeholder="Opcional">
+                    </div>
+                </div>
+
+                <!-- Fila 3 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="primerNombre">Primer Nombre *</label>
+                        <input type="text" id="primerNombre" placeholder="Ej: Juan" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="segundoNombre">Segundo Nombre</label>
+                        <input type="text" id="segundoNombre" placeholder="Opcional">
+                    </div>
+                </div>
+
+                <!-- Fila 4 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fechaNacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fechaNacimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo">
+                            <option value="">Selecciona...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="O">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipoSangre">Tipo de Sangre</label>
+                        <select id="tipoSangre">
+                            <option value="">Selecciona...</option>
+                            <option value="0">O-</option>
+                            <option value="1">O+</option>
+                            <option value="2">A-</option>
+                            <option value="3">A+</option>
+                            <option value="4">B-</option>
+                            <option value="5">B+</option>
+                            <option value="6">AB-</option>
+                            <option value="7">AB+</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Guardar Usuario</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmación de Eliminación -->
+    <div id="deleteConfirmModal" class="modal hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Confirmar Eliminación</h2>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage">¿Estás seguro de que deseas eliminar este usuario?</p>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
