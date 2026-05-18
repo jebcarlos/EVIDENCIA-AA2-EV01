@@ -157,6 +157,45 @@ public class FundUsuarioDAO {
         }
     }
 
+    // UPDATE - Actualizar solo campos no nulos (consola)
+    public static boolean actualizarCampos(int usuConsecutivo, Integer dv,
+                                           String primerApellido, String segundoApellido,
+                                           String primerNombre, String segundoNombre,
+                                           LocalDate fechaNacimiento, String sexo, Integer tipoSangre) {
+        StringBuilder sql = new StringBuilder("UPDATE fundusuario SET ");
+        java.util.ArrayList<Object> valores = new java.util.ArrayList<>();
+        
+        if (dv != null) { sql.append("DV = ?, "); valores.add(dv); }
+        if (primerApellido != null) { sql.append("PRIMERAPELLIDO = ?, "); valores.add(primerApellido); }
+        if (segundoApellido != null) { sql.append("SEGUNDOAPELLIDO = ?, "); valores.add(segundoApellido); }
+        if (primerNombre != null) { sql.append("PRIMERNOMBRE = ?, "); valores.add(primerNombre); }
+        if (segundoNombre != null) { sql.append("SEGUNDONOMBRE = ?, "); valores.add(segundoNombre); }
+        if (fechaNacimiento != null) { sql.append("FECHANACIMIENTO = ?, "); valores.add(java.sql.Date.valueOf(fechaNacimiento)); }
+        if (sexo != null) { sql.append("SEXO = ?, "); valores.add(sexo); }
+        if (tipoSangre != null) { sql.append("TIPOSANGRE = ?, "); valores.add(tipoSangre); }
+        
+        if (valores.isEmpty()) {
+            System.out.println("✗ No se especificó ningún campo para actualizar");
+            return false;
+        }
+        
+        sql.setLength(sql.length() - 2);
+        sql.append(" WHERE USUCONSECUTIVO = ?");
+        valores.add(usuConsecutivo);
+        
+        try (Connection conn = ConexionJDBC.obtenerConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < valores.size(); i++) {
+                pstmt.setObject(i + 1, valores.get(i));
+            }
+            int filasAfectadas = pstmt.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // DELETE
     public static boolean eliminar(int usuConsecutivo) {
         String sql = "DELETE FROM fundusuario WHERE USUCONSECUTIVO = ?";

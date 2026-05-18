@@ -192,17 +192,9 @@ public class Principal {
         try {
             int usuConsecutivo = Integer.parseInt(scanner.nextLine());
             
-            System.out.print("Tipo de Documento (TPD): ");
-            int tpd = Integer.parseInt(scanner.nextLine());
+            System.out.println("\nDeje en blanco los campos que NO desea modificar.\n");
             
-            System.out.print("Identificación: ");
-            String identificacion = scanner.nextLine().trim();
-            if (identificacion.isEmpty()) {
-                System.out.println("✗ La identificación no puede estar vacía");
-                return;
-            }
-            
-            System.out.print("DV (Dígito de Verificación) [Opcional]: ");
+            System.out.print("DV (Dígito de Verificación) [Enter para no modificar]: ");
             String dvStr = scanner.nextLine().trim();
             Integer dv = null;
             if (!dvStr.isEmpty()) {
@@ -214,29 +206,23 @@ public class Principal {
                 }
             }
             
-            System.out.print("Primer Apellido: ");
+            System.out.print("Primer Apellido [Enter para no modificar]: ");
             String primerApellido = scanner.nextLine().trim();
-            if (primerApellido.isEmpty()) {
-                System.out.println("✗ El primer apellido no puede estar vacío");
-                return;
-            }
+            if (primerApellido.isEmpty()) primerApellido = null;
             
-            System.out.print("Segundo Apellido [Opcional]: ");
+            System.out.print("Segundo Apellido [Enter para no modificar]: ");
             String segundoApellido = scanner.nextLine().trim();
             if (segundoApellido.isEmpty()) segundoApellido = null;
             
-            System.out.print("Primer Nombre: ");
+            System.out.print("Primer Nombre [Enter para no modificar]: ");
             String primerNombre = scanner.nextLine().trim();
-            if (primerNombre.isEmpty()) {
-                System.out.println("✗ El primer nombre no puede estar vacío");
-                return;
-            }
+            if (primerNombre.isEmpty()) primerNombre = null;
             
-            System.out.print("Segundo Nombre [Opcional]: ");
+            System.out.print("Segundo Nombre [Enter para no modificar]: ");
             String segundoNombre = scanner.nextLine().trim();
             if (segundoNombre.isEmpty()) segundoNombre = null;
             
-            System.out.print("Fecha de Nacimiento [Opcional, formato: yyyy-MM-dd]: ");
+            System.out.print("Fecha de Nacimiento [yyyy-MM-dd] [Enter para no modificar]: ");
             String fechaStr = scanner.nextLine().trim();
             LocalDate fechaNacimiento = null;
             if (!fechaStr.isEmpty()) {
@@ -248,11 +234,11 @@ public class Principal {
                 }
             }
             
-            System.out.print("Sexo [M/F/O] [Opcional]: ");
+            System.out.print("Sexo [M/F/O] [Enter para no modificar]: ");
             String sexo = scanner.nextLine().trim();
             if (sexo.isEmpty()) sexo = null;
             
-            System.out.print("Tipo de Sangre [0=O-, 1=O+, 2=A-, 3=A+, 4=B-, 5=B+, 6=AB-, 7=AB+] [Opcional]: ");
+            System.out.print("Tipo de Sangre [0=O-, 1=O+, 2=A-, 3=A+, 4=B-, 5=B+, 6=AB-, 7=AB+] [Enter para no modificar]: ");
             String tipoSangreStr = scanner.nextLine().trim();
             Integer tipoSangre = null;
             if (!tipoSangreStr.isEmpty()) {
@@ -264,9 +250,9 @@ public class Principal {
                 }
             }
             
-            if (FundUsuarioDAO.actualizar(usuConsecutivo, tpd, identificacion, dv,
-                                          primerApellido, segundoApellido, primerNombre, 
-                                          segundoNombre, fechaNacimiento, sexo, tipoSangre)) {
+            if (FundUsuarioDAO.actualizarCampos(usuConsecutivo, dv,
+                                                primerApellido, segundoApellido, primerNombre, 
+                                                segundoNombre, fechaNacimiento, sexo, tipoSangre)) {
                 System.out.println("\n✓ Usuario actualizado exitosamente");
             } else {
                 System.out.println("\n✗ Error al actualizar el usuario");
