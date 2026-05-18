@@ -192,6 +192,11 @@ public class Principal {
         try {
             int usuConsecutivo = Integer.parseInt(scanner.nextLine());
             
+            if (!FundUsuarioDAO.existeUsuario(usuConsecutivo)) {
+                System.out.println("\n✗ No existe un usuario con ID " + usuConsecutivo);
+                return;
+            }
+            
             System.out.println("\nDeje en blanco los campos que NO desea modificar.\n");
             
             System.out.print("Primer Apellido [Enter para no modificar]: ");

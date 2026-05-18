@@ -157,6 +157,19 @@ public class FundUsuarioDAO {
         }
     }
 
+    // VERIFICAR si existe usuario
+    public static boolean existeUsuario(int usuConsecutivo) {
+        String sql = "SELECT 1 FROM fundusuario WHERE USUCONSECUTIVO = ?";
+        try (Connection conn = ConexionJDBC.obtenerConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, usuConsecutivo);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
     // UPDATE - Actualizar solo campos no nulos (consola)
     public static boolean actualizarCampos(int usuConsecutivo,
                                            String primerApellido, String segundoApellido,
